@@ -1,0 +1,134 @@
+version: "1.0"
+dataset: olist_ecommerce
+description: "Brazilian e-commerce platform with orders, customers, sellers, products"
+
+tables:
+  - name: orders
+    description: "One row per order"
+  - name: order_items
+    description: "Line items within each order"
+  - name: order_payments
+    description: "Payment details per order"
+  - name: order_reviews
+    description: "Customer review scores per order"
+  - name: customers
+    description: "Customer location and identity"
+  - name: sellers
+    description: "Seller location"
+  - name: products
+    description: "Product details and category"
+
+joins:
+  - from: orders
+    to: order_items
+    "on": "orders.order_id = order_items.order_id"
+    type: LEFT
+  - from: orders
+    to: order_payments
+    "on": "orders.order_id = order_payments.order_id"
+    type: LEFT
+  - from: orders
+    to: order_reviews
+    "on": "orders.order_id = order_reviews.order_id"
+    type: LEFT
+  - from: orders
+    to: customers
+    "on": "orders.customer_id = customers.customer_id"
+    type: LEFT
+  - from: order_items
+    to: sellers
+    "on": "order_items.seller_id = sellers.seller_id"
+    type: LEFT
+  - from: order_items
+    to: products
+    "on": "order_items.product_id = products.product_id"
+    type: LEFT
+
+metrics:
+  - name: total_revenue
+    display_name: "Total Revenue"
+    description: "Sum of payment value for all non-cancelled orders"
+    aggregation: SUM
+    sql_expression: "op.payment_value"
+    required_tables: ["orders", "order_payments op"]
+    base_filter: "orders.order_status NOT IN ('cancelled', 'unavailable')"
+  - name: order_count
+    display_name: "Number of Orders"
+    description: "Count of distinct orders"
+    aggregation: COUNT_DISTINCT
+    sql_expression: "orders.order_id"
+    required_tables: ["orders"]
+    base_filter: null
+  - name: average_order_value
+    display_name: "Average Order Value"
+    description: "Mean payment value per order"
+    aggregation: AVG
+    sql_expression: "op.payment_value"
+    required_tables: ["orders", "order_payments op"]
+    base_filter: "orders.order_status NOT IN ('cancelled', 'unavailable')"
+  - name: average_review_score
+    display_name: "Average Review Score"
+    description: "Mean customer review score from 1 to 5"
+    aggregation: AVG
+    sql_expression: "r.review_score"
+    required_tables: ["orders", "order_reviews r"]
+    base_filter: "r.review_score IS NOT NULL"
+  - name: average_delivery_days
+    display_name: "Average Delivery Time (Days)"
+    description: "Mean days from purchase to delivery"
+    aggregation: AVG
+    sql_expression: "DATEDIFF('day', orders.order_purchase_timestamp, orders.order_delivered_customer_date)"
+    required_tables: ["orders"]
+    base_filter: "orders.order_delivered_customer_date IS NOT NULL"
+  - name: cancellation_rate
+    display_name: "Cancellation Rate"
+    description: "Percentage of orders that were cancelled"
+    aggregation: RATIO
+    numerator_sql: "COUNT(CASE WHEN orders.order_status = 'cancelled' THEN 1 END)"
+    denominator_sql: "COUNT(orders.order_id)"
+    required_tables: ["orders"]
+    base_filter: null
+
+dimensions:
+  - name: product_category
+    display_name: "Product Category"
+    sql_expression: "p.product_category_name_english"
+    required_tables: ["order_items", "products p"]
+    cardinality: medium
+  - name: customer_state
+    display_name: "Customer State"
+    sql_expression: "c.customer_state"
+    required_tables: ["orders", "customers c"]
+    cardinality: low
+  - name: seller_state
+    display_name: "Seller State"
+    sql_expression: "s.seller_state"
+    required_tables: ["order_items", "sellers s"]
+    cardinality: low
+  - name: payment_type
+    display_name: "Payment Method"
+    sql_expression: "op.payment_type"
+    required_tables: ["orders", "order_payments op"]
+    cardinality: low
+  - name: order_status
+    display_name: "Order Status"
+    sql_expression: "orders.order_status"
+    required_tables: ["orders"]
+    cardinality: low
+  - name: review_score
+    display_name: "Review Score"
+    sql_expression: "r.review_score"
+    required_tables: ["orders", "order_reviews r"]
+    cardinality: low
+
+time_dimensions:
+  - name: order_date
+    display_name: "Order Date"
+    sql_expression: "orders.order_purchase_timestamp"
+    default_granularity: month
+    table: orders
+  - name: delivery_date
+    display_name: "Delivery Date"
+    sql_expression: "orders.order_delivered_customer_date"
+    default_granularity: month
+    table: orders
