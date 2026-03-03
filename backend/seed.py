@@ -23,6 +23,7 @@ def seed():
         "products":       "olist_products_dataset.csv",
         "category_translation": "product_category_name_translation.csv",
     }
+    loaded_tables: set[str] = set()
 
     for table_name, filename in tables.items():
         filepath = RAW_PATH / filename
@@ -34,18 +35,22 @@ def seed():
             CREATE TABLE {table_name} AS
             SELECT * FROM read_csv_auto('{filepath.as_posix()}', header=true)
         """)
+        loaded_tables.add(table_name)
         count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
         print(f"Loaded {table_name}: {count:,} rows")
 
     # Join English category names onto products
-    conn.execute("""
-        ALTER TABLE products ADD COLUMN IF NOT EXISTS product_category_name_english TEXT;
-        UPDATE products
-        SET product_category_name_english = ct.product_category_name_english
-        FROM category_translation ct
-        WHERE products.product_category_name = ct.product_category_name
-    """)
-    print("\nCategory translation applied to products table.")
+    if {"products", "category_translation"}.issubset(loaded_tables):
+        conn.execute("""
+            ALTER TABLE products ADD COLUMN IF NOT EXISTS product_category_name_english TEXT;
+            UPDATE products
+            SET product_category_name_english = ct.product_category_name_english
+            FROM category_translation ct
+            WHERE products.product_category_name = ct.product_category_name
+        """)
+        print("\nCategory translation applied to products table.")
+    else:
+        print("\nSkipping category translation because products or category_translation was not loaded.")
 
     conn.close()
     print(f"\nDatabase created at: {DB_PATH}")

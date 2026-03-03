@@ -32,9 +32,11 @@ class DuckDBConnector(DataConnector):
         if not re.search(r"\blimit\s+\d+\b", normalized, flags=re.IGNORECASE):
             normalized = f"{normalized} LIMIT {limit}"
         table_names = set(self._list_tables())
+        table_columns = self._list_table_columns()
         validate_sql_safety(
             normalized,
             allowed_tables=table_names,
+            table_columns=table_columns,
             max_limit=limit,
         )
         with self._connect() as conn:
@@ -53,11 +55,10 @@ class DuckDBConnector(DataConnector):
                     f"SELECT COUNT(*) FROM {safe_table}"
                 ).fetchone()[0]
 
-        join_paths = self._infer_join_paths(table_metadata)
         return SchemaContext(
             tables=table_metadata,
             row_counts=row_counts,
-            join_paths=join_paths,
+            join_paths=[],
         )
 
     def close(self) -> None:
@@ -84,6 +85,20 @@ class DuckDBConnector(DataConnector):
             raise ValueError(f"Unsafe identifier: {identifier}")
         return f'"{identifier}"'
 
+    def _list_table_columns(self) -> dict[str, set[str]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'main'
+                """
+            ).fetchall()
+        columns_by_table: dict[str, set[str]] = {}
+        for table_name, column_name in rows:
+            columns_by_table.setdefault(table_name, set()).add(column_name)
+        return columns_by_table
+
     def _get_table_columns(self, conn, table_name: str) -> list[dict]:
         safe_table = self._quote_identifier(table_name)
         rows = conn.execute(f"PRAGMA table_info({safe_table})").fetchall()
@@ -107,26 +122,3 @@ class DuckDBConnector(DataConnector):
                 }
             )
         return columns
-
-    def _infer_join_paths(self, tables: dict[str, list[dict]]) -> list[dict]:
-        id_columns_by_table = {
-            table_name: {column["name"] for column in columns if column["name"].endswith("_id")}
-            for table_name, columns in tables.items()
-        }
-
-        join_paths: list[dict] = []
-        for from_table, from_columns in id_columns_by_table.items():
-            for to_table, to_columns in id_columns_by_table.items():
-                if from_table == to_table:
-                    continue
-                common_ids = sorted(from_columns.intersection(to_columns))
-                for common_id in common_ids:
-                    join_paths.append(
-                        {
-                            "from_table": from_table,
-                            "to_table": to_table,
-                            "from_col": common_id,
-                            "to_col": common_id,
-                        }
-                    )
-        return join_paths

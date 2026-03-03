@@ -30,6 +30,7 @@ export type ChatResponse = {
   query_id: string;
   question: string;
   intent: SemanticIntent;
+  intent_source: "heuristic" | "llm" | "llm_fallback" | "explicit";
   sql: string;
   rows: Array<Record<string, unknown>>;
   row_count: number;

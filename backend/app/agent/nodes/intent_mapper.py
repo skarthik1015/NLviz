@@ -3,19 +3,25 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from app.agent.state import AgentState
-from app.models import SemanticIntent
+from app.connectors.base import SchemaContext
+from app.semantic import SemanticRegistry
+from app.services import IntentMapperRouter, validate_semantic_intent
 
-IntentMapper = Callable[[str], SemanticIntent]
 
-
-def build_intent_mapper_node(intent_mapper: IntentMapper) -> Callable[[AgentState], AgentState]:
+def build_intent_mapper_node(
+    intent_mapper: IntentMapperRouter,
+    registry: SemanticRegistry,
+    schema: SchemaContext,
+) -> Callable[[AgentState], AgentState]:
     def node(state: AgentState) -> AgentState:
         explicit_intent = state.get("explicit_intent")
         if explicit_intent is not None:
+            validated = validate_semantic_intent(explicit_intent, registry, schema)
             return {
-                "intent": explicit_intent,
+                "intent": validated,
+                "intent_source": "explicit",
                 "trace": [
-                    f"Intent mapper: using explicit intent for metric '{explicit_intent.metric}'",
+                    f"Intent mapper: using explicit intent for metric '{validated.metric}'",
                 ],
             }
 
@@ -23,14 +29,11 @@ def build_intent_mapper_node(intent_mapper: IntentMapper) -> Callable[[AgentStat
         if not question:
             raise ValueError("Question is required before intent mapping")
 
-        intent = intent_mapper(question)
+        result = intent_mapper.map_with_metadata(question, registry, schema)
         return {
-            "intent": intent,
-            "trace": [
-                f"Intent mapper: selected metric '{intent.metric}'",
-                "Intent mapper: resolved dimensions "
-                + (", ".join(intent.dimensions) if intent.dimensions else "none"),
-            ],
+            "intent": result.intent,
+            "intent_source": result.source,
+            "trace": result.trace,
         }
 
     return node

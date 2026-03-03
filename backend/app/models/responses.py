@@ -17,6 +17,7 @@ class ChatResponse(BaseModel):
     query_id: str
     question: str
     intent: SemanticIntent
+    intent_source: Literal["heuristic", "llm", "llm_fallback", "explicit"]
     sql: str
     rows: list[dict[str, Any]]
     row_count: int

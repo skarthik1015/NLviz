@@ -80,10 +80,10 @@ export function ChatWorkbench() {
           </div>
           <div className="toolbar">
             <div className="status">
-              {isSubmitting ? "Running semantic query pipeline…" : "Ready to query the backend API."}
+              {isSubmitting ? "Running semantic query pipeline..." : "Ready to query the backend API."}
             </div>
             <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Querying…" : "Run Query"}
+              {isSubmitting ? "Querying..." : "Run Query"}
             </button>
           </div>
           {error ? <div className="error">{error}</div> : null}
@@ -92,7 +92,6 @@ export function ChatWorkbench() {
 
       {result ? (
         <div className="results-grid">
-
           <section className="panel section chart-panel">
             <h2 className="section-title">
               {result.intent.metric.replaceAll("_", " ")}
@@ -126,7 +125,7 @@ export function ChatWorkbench() {
                   <div className="stat-card">
                     <div className="stat-label">Date filter</div>
                     <div className="stat-value-sm">
-                      {result.intent.start_date} → {result.intent.end_date}
+                      {result.intent.start_date} {"->"} {result.intent.end_date}
                     </div>
                   </div>
                 )}
@@ -167,6 +166,10 @@ export function ChatWorkbench() {
                   <div className="meta-row">
                     <span className="meta-key">Order</span>
                     <span>{result.intent.order_by}</span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-key">Intent source</span>
+                    <span>{result.intent_source}</span>
                   </div>
                   <div className="meta-row">
                     <span className="meta-key">Limit</span>

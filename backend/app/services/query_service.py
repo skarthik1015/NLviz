@@ -28,6 +28,7 @@ class QueryService:
             query_id=query_id,
             question=question,
             intent=intent,
+            intent_source=state.get("intent_source", "heuristic"),
             sql=sql,
             rows=state.get("rows", []),
             row_count=state.get("row_count", 0),

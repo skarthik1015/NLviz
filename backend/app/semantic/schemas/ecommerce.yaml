@@ -100,6 +100,11 @@ dimensions:
     sql_expression: "c.customer_state"
     required_tables: ["orders", "customers c"]
     cardinality: low
+  - name: customer_id
+    display_name: "Customer ID"
+    sql_expression: "c.customer_id"
+    required_tables: ["orders", "customers c"]
+    cardinality: high
   - name: seller_state
     display_name: "Seller State"
     sql_expression: "s.seller_state"

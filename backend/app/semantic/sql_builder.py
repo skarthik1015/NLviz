@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import deque
 import re
 
 from app.models.semantic_intent import FilterCondition, SemanticIntent
 
 from .loader import SemanticRegistry
+from .models import SemanticJoin
 
 
 def _parse_table_ref(table_ref: str) -> tuple[str, str]:
@@ -28,6 +30,12 @@ def _apply_aliases(expression: str, aliases: dict[str, str]) -> str:
     for table_name, alias in aliases.items():
         updated = re.sub(rf"\b{table_name}\.", f"{alias}.", updated)
     return updated
+
+
+def _format_table_with_alias(table_name: str, alias: str) -> str:
+    if alias == table_name:
+        return table_name
+    return f"{table_name} {alias}"
 
 
 def _build_metric_expression(metric) -> str:
@@ -84,6 +92,70 @@ def _time_bucket_expression(time_expr: str, granularity: str) -> str:
     return f"DATE_TRUNC('{granularity}', {time_expr})"
 
 
+def _join_key(join: SemanticJoin) -> tuple[str, str, str, str]:
+    return (join.from_table, join.to_table, join.on, join.join_type)
+
+
+def _build_join_graph(registry: SemanticRegistry) -> dict[str, list[tuple[str, SemanticJoin]]]:
+    graph: dict[str, list[tuple[str, SemanticJoin]]] = {}
+    for join in registry.list_joins():
+        graph.setdefault(join.from_table, []).append((join.to_table, join))
+        graph.setdefault(join.to_table, []).append((join.from_table, join))
+
+    for edges in graph.values():
+        edges.sort(key=lambda edge: (edge[0],) + _join_key(edge[1]))
+    return graph
+
+
+def _find_join_path(
+    base_table: str,
+    target_table: str,
+    graph: dict[str, list[tuple[str, SemanticJoin]]],
+) -> list[SemanticJoin] | None:
+    queue: deque[tuple[str, list[SemanticJoin]]] = deque([(base_table, [])])
+    visited = {base_table}
+
+    while queue:
+        current_table, path = queue.popleft()
+        if current_table == target_table:
+            return path
+
+        for neighbor, join in graph.get(current_table, []):
+            if neighbor in visited:
+                continue
+            visited.add(neighbor)
+            queue.append((neighbor, path + [join]))
+
+    return None
+
+
+def _build_join_plan(
+    base_table: str,
+    required_tables: set[str],
+    registry: SemanticRegistry,
+) -> list[SemanticJoin]:
+    graph = _build_join_graph(registry)
+    join_plan: list[SemanticJoin] = []
+    seen_joins: set[tuple[str, str, str, str]] = set()
+
+    for target_table in sorted(required_tables - {base_table}):
+        path = _find_join_path(base_table, target_table, graph)
+        if path is None:
+            raise ValueError(
+                "Could not resolve join path for all required tables. "
+                f"Missing tables: {sorted(required_tables - {base_table})}"
+            )
+
+        for join in path:
+            join_id = _join_key(join)
+            if join_id in seen_joins:
+                continue
+            seen_joins.add(join_id)
+            join_plan.append(join)
+
+    return join_plan
+
+
 def build_sql_from_intent(intent: SemanticIntent, registry: SemanticRegistry) -> str:
     metric = registry.get_metric(intent.metric)
     required_tables: set[str] = set()
@@ -130,38 +202,29 @@ def build_sql_from_intent(intent: SemanticIntent, registry: SemanticRegistry) ->
             where_parts.append(f"{time_expr} <= {_to_sql_literal(intent.end_date)}")
 
     base_table = metric.required_tables[0].split()[0]
-    from_clause = f"{base_table} {aliases.get(base_table, base_table)}"
+    from_clause = _format_table_with_alias(base_table, aliases.get(base_table, base_table))
 
     connected_tables = {base_table}
-    pending_tables = set(required_tables) - connected_tables
     join_clauses: list[str] = []
-
-    while pending_tables:
-        progress = False
-        for join in registry.list_joins():
-            left = join.from_table
-            right = join.to_table
-            if left in connected_tables and right in pending_tables:
-                right_alias = aliases.get(right, right)
-                on_sql = _apply_aliases(join.on, aliases)
-                join_clauses.append(f"{join.join_type} JOIN {right} {right_alias} ON {on_sql}")
-                connected_tables.add(right)
-                pending_tables.remove(right)
-                progress = True
-                break
-            if right in connected_tables and left in pending_tables:
-                left_alias = aliases.get(left, left)
-                on_sql = _apply_aliases(join.on, aliases)
-                join_clauses.append(f"{join.join_type} JOIN {left} {left_alias} ON {on_sql}")
-                connected_tables.add(left)
-                pending_tables.remove(left)
-                progress = True
-                break
-        if not progress:
+    for join in _build_join_plan(base_table, required_tables, registry):
+        join_table: str | None = None
+        if join.from_table in connected_tables and join.to_table not in connected_tables:
+            join_table = join.to_table
+        elif join.to_table in connected_tables and join.from_table not in connected_tables:
+            join_table = join.from_table
+        elif join.from_table in connected_tables and join.to_table in connected_tables:
+            continue
+        else:
             raise ValueError(
-                "Could not resolve join path for all required tables. "
-                f"Missing tables: {sorted(pending_tables)}"
+                "Resolved join plan contains a disconnected edge. "
+                f"Edge: {join.from_table}->{join.to_table}"
             )
+
+        join_alias = aliases.get(join_table, join_table)
+        on_sql = _apply_aliases(join.on, aliases)
+        join_target = _format_table_with_alias(join_table, join_alias)
+        join_clauses.append(f"{join.join_type} JOIN {join_target} ON {on_sql}")
+        connected_tables.add(join_table)
 
     sql_parts: list[str] = []
     select_clause = ", ".join(select_parts + [f"{metric_expression} AS metric_value"])

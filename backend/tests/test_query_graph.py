@@ -8,7 +8,7 @@ from app.agent import QueryGraphDependencies, QueryGraphRunner
 from app.connectors.base import DataConnector, SchemaContext
 from app.models import SemanticIntent
 from app.semantic import load_semantic_registry
-from app.services import QueryService
+from app.services import IntentMapperConfig, IntentMapperRouter, QueryService
 
 
 class StubConnector(DataConnector):
@@ -16,7 +16,20 @@ class StubConnector(DataConnector):
         self.executed_sql: list[str] = []
 
     def get_schema(self) -> SchemaContext:
-        return SchemaContext(tables={}, row_counts={}, join_paths=[])
+        table_names = {
+            "orders",
+            "order_items",
+            "order_payments",
+            "order_reviews",
+            "customers",
+            "sellers",
+            "products",
+        }
+        return SchemaContext(
+            tables={table_name: [] for table_name in table_names},
+            row_counts={},
+            join_paths=[],
+        )
 
     def execute_query(self, sql: str, limit: int = 5000) -> pd.DataFrame:
         self.executed_sql.append(sql)
@@ -39,13 +52,33 @@ def _load_registry():
     return load_semantic_registry(schema_path)
 
 
+class ExplodingMapper:
+    def map(self, question, registry, schema):
+        del question, registry, schema
+        raise AssertionError("mapper should not run")
+
+
+class StaticMapper:
+    def __init__(self, intent: SemanticIntent):
+        self.intent = intent
+
+    def map(self, question, registry, schema):
+        del question, registry, schema
+        return self.intent
+
+
 def test_query_graph_uses_explicit_intent_without_mapper():
     connector = StubConnector()
+    schema_context = connector.get_schema()
     runner = QueryGraphRunner(
         QueryGraphDependencies(
             connector=connector,
+            schema_context=schema_context,
             registry=_load_registry(),
-            intent_mapper=lambda _: (_ for _ in ()).throw(AssertionError("mapper should not run")),
+            intent_mapper=IntentMapperRouter(
+                config=IntentMapperConfig(),
+                heuristic_mapper=ExplodingMapper(),
+            ),
         )
     )
 
@@ -57,6 +90,7 @@ def test_query_graph_uses_explicit_intent_without_mapper():
     )
 
     assert state["intent"] == explicit_intent
+    assert state["intent_source"] == "explicit"
     assert state["row_count"] == 2
     assert "COUNT(DISTINCT orders.order_id) AS metric_value" in state["sql"]
     assert connector.executed_sql == [state["sql"]]
@@ -65,17 +99,24 @@ def test_query_graph_uses_explicit_intent_without_mapper():
 
 def test_query_service_runs_langgraph_pipeline_end_to_end():
     connector = StubConnector()
+    schema_context = connector.get_schema()
     runner = QueryGraphRunner(
         QueryGraphDependencies(
             connector=connector,
+            schema_context=schema_context,
             registry=_load_registry(),
-            intent_mapper=lambda question: SemanticIntent(
-                metric="total_revenue",
-                dimensions=["customer_state"],
-                time_dimension="order_date",
-                time_granularity="month",
-                order_by="time_asc",
-                limit=25,
+            intent_mapper=IntentMapperRouter(
+                config=IntentMapperConfig(),
+                heuristic_mapper=StaticMapper(
+                    SemanticIntent(
+                        metric="total_revenue",
+                        dimensions=["customer_state"],
+                        time_dimension="order_date",
+                        time_granularity="month",
+                        order_by="time_asc",
+                        limit=25,
+                    )
+                ),
             ),
         )
     )
@@ -84,11 +125,13 @@ def test_query_service_runs_langgraph_pipeline_end_to_end():
     response = service.run_question("Show revenue by customer state over time")
 
     assert response.intent.metric == "total_revenue"
+    assert response.intent_source == "heuristic"
     assert response.row_count == 2
     assert response.rows[0]["customer_state"] == "SP"
     assert "DATE_TRUNC('month', orders.order_purchase_timestamp) AS time_bucket" in response.sql
     assert "SUM(op.payment_value) AS metric_value" in response.sql
     assert response.trace == [
+        "Intent mapper: source=heuristic",
         "Intent mapper: selected metric 'total_revenue'",
         "Intent mapper: resolved dimensions customer_state",
         "SQL builder: compiled deterministic SQL from semantic registry",

@@ -8,8 +8,7 @@ import pytest
 
 from app.agent import QueryGraphDependencies, QueryGraphRunner
 from app.connectors.base import DataConnector, SchemaContext
-from app.services import QueryService
-from app.services.intent_mapper import map_question_to_intent
+from app.services import HeuristicIntentMapper, IntentMapperConfig, IntentMapperRouter, QueryService
 from app.semantic import load_semantic_registry
 
 
@@ -112,7 +111,20 @@ class StubConnector(DataConnector):
         self.executed_sql: list[str] = []
 
     def get_schema(self) -> SchemaContext:
-        return SchemaContext(tables={}, row_counts={}, join_paths=[])
+        table_names = {
+            "orders",
+            "order_items",
+            "order_payments",
+            "order_reviews",
+            "customers",
+            "sellers",
+            "products",
+        }
+        return SchemaContext(
+            tables={table_name: [] for table_name in table_names},
+            row_counts={},
+            join_paths=[],
+        )
 
     def execute_query(self, sql: str, limit: int = 5000) -> pd.DataFrame:
         self.executed_sql.append(sql)
@@ -131,11 +143,16 @@ def _load_registry():
 
 
 def _build_service(connector: StubConnector) -> QueryService:
+    schema_context = connector.get_schema()
     runner = QueryGraphRunner(
         QueryGraphDependencies(
             connector=connector,
+            schema_context=schema_context,
             registry=_load_registry(),
-            intent_mapper=map_question_to_intent,
+            intent_mapper=IntentMapperRouter(
+                config=IntentMapperConfig(),
+                heuristic_mapper=HeuristicIntentMapper(),
+            ),
         )
     )
     return QueryService(query_graph=runner)
@@ -157,6 +174,7 @@ def test_golden_question_outputs(case: GoldenCase):
     assert tuple(response.intent.dimensions) == case.dimensions
     assert response.intent.time_dimension == case.time_dimension
     assert response.intent.order_by == case.order_by
+    assert response.intent_source == "heuristic"
     assert response.row_count == 1
     assert response.trace[0].startswith("Intent mapper:")
     assert response.trace[-1].startswith("Executor:")

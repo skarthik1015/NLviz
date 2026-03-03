@@ -18,7 +18,9 @@ function toNumericMetric(value: unknown): number {
 export function buildPlotSpec(response: ChatResponse): PlotSpec {
   const firstRow = response.rows[0] ?? {};
   const candidateKeys = Object.keys(firstRow).filter((key) => key !== "metric_value");
-  const xKey = candidateKeys[0] ?? null;
+  const xKey = response.intent.time_dimension
+    ? (candidateKeys.find((key) => key === "time_bucket") ?? candidateKeys[0] ?? null)
+    : (candidateKeys[0] ?? null);
 
   const chartType: PlotSpec["chart_type"] = response.intent.time_dimension
     ? "line"
