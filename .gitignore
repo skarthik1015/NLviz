@@ -1,0 +1,48 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+data/raw/
+data/*.duckdb
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local env files / secrets
+.env
+*.env
+
+# ---- Node / Frontend ----
+node_modules/
+.next/
+dist/
+build/
+*.log
+
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---- Data / Artifacts ----
+*.duckdb
+*.db
+data/
+uploads/
+results/
+artifacts/
