@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SemanticTable(BaseModel):
@@ -29,6 +29,15 @@ class SemanticMetric(BaseModel):
     denominator_sql: str | None = None
     required_tables: list[str]
     base_filter: str | None = None
+
+    @model_validator(mode="after")
+    def check_aggregation_fields(self):
+        if self.aggregation == "RATIO":
+            if not self.numerator_sql or not self.denominator_sql:
+                raise ValueError("RATIO metrics require numerator_sql and denominator_sql")
+        elif not self.sql_expression:
+            raise ValueError(f"{self.aggregation} metrics require sql_expression")
+        return self
 
 
 class SemanticDimension(BaseModel):

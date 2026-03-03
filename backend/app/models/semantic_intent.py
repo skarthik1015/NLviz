@@ -30,5 +30,5 @@ class SemanticIntent(BaseModel):
     time_granularity: Literal["day", "week", "month", "quarter", "year"] | None = None
     start_date: str | None = None
     end_date: str | None = None
-    order_by: Literal["metric_desc", "metric_asc"] = "metric_desc"
+    order_by: Literal["metric_desc", "metric_asc", "time_asc", "time_desc"] = "metric_desc"
     limit: int = 100

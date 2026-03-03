@@ -14,14 +14,15 @@ class DuckDBConnector(DataConnector):
     def __init__(self, db_path: str | Path | None = None):
         default_db = Path(__file__).resolve().parents[2] / "data" / "ecommerce.duckdb"
         self.db_path = Path(db_path) if db_path else default_db
-        self.conn = duckdb.connect(str(self.db_path))
+        self._identifier_pattern = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
     def get_connector_type(self) -> str:
         return "duckdb"
 
     def test_connection(self) -> bool:
         try:
-            self.conn.execute("SELECT 1").fetchone()
+            with self._connect() as conn:
+                conn.execute("SELECT 1").fetchone()
             return True
         except Exception:
             return False
@@ -30,23 +31,27 @@ class DuckDBConnector(DataConnector):
         normalized = sql.strip().rstrip(";")
         if not re.search(r"\blimit\s+\d+\b", normalized, flags=re.IGNORECASE):
             normalized = f"{normalized} LIMIT {limit}"
+        table_names = set(self._list_tables())
         validate_sql_safety(
             normalized,
-            allowed_tables=set(self._list_tables()),
+            allowed_tables=table_names,
             max_limit=limit,
         )
-        return self.conn.execute(normalized).df()
+        with self._connect() as conn:
+            return conn.execute(normalized).df()
 
     def get_schema(self) -> SchemaContext:
         tables = self._list_tables()
         table_metadata: dict[str, list[dict]] = {}
         row_counts: dict[str, int] = {}
 
-        for table_name in tables:
-            table_metadata[table_name] = self._get_table_columns(table_name)
-            row_counts[table_name] = self.conn.execute(
-                f"SELECT COUNT(*) FROM {table_name}"
-            ).fetchone()[0]
+        with self._connect() as conn:
+            for table_name in tables:
+                safe_table = self._quote_identifier(table_name)
+                table_metadata[table_name] = self._get_table_columns(conn, table_name)
+                row_counts[table_name] = conn.execute(
+                    f"SELECT COUNT(*) FROM {safe_table}"
+                ).fetchone()[0]
 
         join_paths = self._infer_join_paths(table_metadata)
         return SchemaContext(
@@ -55,26 +60,41 @@ class DuckDBConnector(DataConnector):
             join_paths=join_paths,
         )
 
+    def close(self) -> None:
+        # Connector now uses short-lived connections; nothing persistent to close.
+        return None
+
+    def _connect(self):
+        return duckdb.connect(str(self.db_path), read_only=True)
+
     def _list_tables(self) -> list[str]:
-        rows = self.conn.execute(
-            """
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'main'
-            ORDER BY table_name
-            """
-        ).fetchall()
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'main'
+                ORDER BY table_name
+                """
+            ).fetchall()
         return [row[0] for row in rows]
 
-    def _get_table_columns(self, table_name: str) -> list[dict]:
-        rows = self.conn.execute(f"PRAGMA table_info('{table_name}')").fetchall()
+    def _quote_identifier(self, identifier: str) -> str:
+        if not self._identifier_pattern.fullmatch(identifier):
+            raise ValueError(f"Unsafe identifier: {identifier}")
+        return f'"{identifier}"'
+
+    def _get_table_columns(self, conn, table_name: str) -> list[dict]:
+        safe_table = self._quote_identifier(table_name)
+        rows = conn.execute(f"PRAGMA table_info({safe_table})").fetchall()
         columns: list[dict] = []
         for _, column_name, column_type, not_null, _, _ in rows:
-            sample_values = self.conn.execute(
+            safe_column = self._quote_identifier(column_name)
+            sample_values = conn.execute(
                 f"""
-                SELECT DISTINCT {column_name}
-                FROM {table_name}
-                WHERE {column_name} IS NOT NULL
+                SELECT DISTINCT {safe_column}
+                FROM {safe_table}
+                WHERE {safe_column} IS NOT NULL
                 LIMIT 5
                 """
             ).fetchall()

@@ -40,7 +40,18 @@ def _extract_limit(statement: exp.Expression) -> int | None:
 
 
 def _extract_tables(statement: exp.Expression) -> list[str]:
-    return sorted({table.name for table in statement.find_all(exp.Table) if table.name})
+    cte_aliases = {
+        cte.alias_or_name
+        for cte in statement.find_all(exp.CTE)
+        if cte.alias_or_name
+    }
+    return sorted(
+        {
+            table.name
+            for table in statement.find_all(exp.Table)
+            if table.name and table.name not in cte_aliases
+        }
+    )
 
 
 def validate_sql_safety(

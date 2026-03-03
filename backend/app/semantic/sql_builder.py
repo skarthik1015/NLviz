@@ -175,8 +175,18 @@ def build_sql_from_intent(intent: SemanticIntent, registry: SemanticRegistry) ->
         sql_parts.append("GROUP BY " + ", ".join(group_parts))
     if intent.order_by == "metric_asc":
         sql_parts.append("ORDER BY metric_value ASC")
-    else:
+    elif intent.order_by == "metric_desc":
         sql_parts.append("ORDER BY metric_value DESC")
+    elif intent.order_by == "time_asc":
+        if not intent.time_dimension:
+            raise ValueError("order_by='time_asc' requires a time_dimension")
+        sql_parts.append("ORDER BY time_bucket ASC")
+    elif intent.order_by == "time_desc":
+        if not intent.time_dimension:
+            raise ValueError("order_by='time_desc' requires a time_dimension")
+        sql_parts.append("ORDER BY time_bucket DESC")
+    else:
+        raise ValueError(f"Unsupported order_by option: {intent.order_by}")
     sql_parts.append(f"LIMIT {intent.limit}")
 
     return "\n".join(sql_parts)

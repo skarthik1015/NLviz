@@ -29,3 +29,6 @@ class DataConnector(ABC):
     @abstractmethod
     def get_connector_type(self) -> str:
         raise NotImplementedError
+
+    def close(self) -> None:
+        return None

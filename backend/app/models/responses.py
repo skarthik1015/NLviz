@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    query_id: str
     question: str
     intent: SemanticIntent
     sql: str

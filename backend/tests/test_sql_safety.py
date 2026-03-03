@@ -68,3 +68,48 @@ def test_blocks_limit_above_max():
             allowed_tables=ALLOWED_TABLES,
             max_limit=5000,
         )
+
+
+def test_allows_cte_backed_by_allowlisted_tables():
+    result = validate_sql_safety(
+        """
+        WITH recent_orders AS (
+            SELECT order_id
+            FROM orders
+            LIMIT 5
+        )
+        SELECT *
+        FROM recent_orders
+        LIMIT 5
+        """,
+        allowed_tables=ALLOWED_TABLES,
+        max_limit=5000,
+    )
+    assert result.tables == ["orders"]
+    assert result.limit == 5
+
+
+def test_blocks_disallowed_table_inside_subquery():
+    with pytest.raises(SQLSafetyError, match="outside allowlist"):
+        validate_sql_safety(
+            """
+            SELECT *
+            FROM (
+                SELECT *
+                FROM users
+                LIMIT 5
+            ) suspicious
+            LIMIT 5
+            """,
+            allowed_tables=ALLOWED_TABLES,
+            max_limit=5000,
+        )
+
+
+def test_blocks_non_integer_limit():
+    with pytest.raises(SQLSafetyError, match="integer LIMIT"):
+        validate_sql_safety(
+            "SELECT * FROM orders LIMIT '10'",
+            allowed_tables=ALLOWED_TABLES,
+            max_limit=5000,
+        )

@@ -1,12 +1,13 @@
 import duckdb
-import pandas as pd
 from pathlib import Path
 
-DB_PATH = Path("data/ecommerce.duckdb")
-RAW_PATH = Path("data/raw")
+BACKEND_ROOT = Path(__file__).resolve().parent
+DB_PATH = BACKEND_ROOT / "data" / "ecommerce.duckdb"
+RAW_PATH = BACKEND_ROOT / "data" / "raw"
 
 def seed():
     # Remove existing DB so this is idempotent
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if DB_PATH.exists():
         DB_PATH.unlink()
 
