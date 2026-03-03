@@ -1,3 +1,4 @@
+import React from "react";
 import { PlotSpec } from "../lib/types";
 
 type PlotPreviewProps = {
@@ -11,7 +12,9 @@ function StatView({ spec }: PlotPreviewProps) {
       <div className="chart-canvas" style={{ display: "grid", placeItems: "center" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "0.88rem", color: "var(--muted)", marginBottom: 8 }}>{spec.title}</div>
-          <div style={{ fontSize: "3rem", lineHeight: 1, color: "var(--accent)" }}>{value.toFixed(2)}</div>
+          <div style={{ fontSize: "3rem", lineHeight: 1, color: "var(--accent)" }}>
+            {value > 10000 ? value.toLocaleString("en-US", { maximumFractionDigits: 0 }) : value.toFixed(2)}
+          </div>
         </div>
       </div>
       <div className="chart-caption">Single-value query rendered as a stat card.</div>
@@ -20,29 +23,43 @@ function StatView({ spec }: PlotPreviewProps) {
 }
 
 function BarView({ spec }: PlotPreviewProps) {
-  const maxValue = Math.max(...spec.series.map((item) => item.value), 1);
+  const data = spec.series.slice(0, 20);
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+  const barW = 34;
+  const gap = 8;
+  const chartH = 230;
+  const barMaxH = 155;
+  const totalW = Math.max(data.length * (barW + gap) + 40, 400);
   return (
     <div className="chart-shell">
-      <div className="chart-canvas">
-        <svg viewBox="0 0 520 220" width="100%" height="100%" role="img" aria-label={spec.title}>
-          {spec.series.slice(0, 8).map((item, index) => {
-            const width = 48;
-            const gap = 16;
-            const x = 36 + index * (width + gap);
-            const barHeight = (item.value / maxValue) * 150;
-            const y = 180 - barHeight;
+      <div className="chart-canvas" style={{ overflowX: "auto" }}>
+        <svg viewBox={`0 0 ${totalW} ${chartH}`} width="100%" height={chartH} role="img" aria-label={spec.title}>
+          {data.map((item, index) => {
+            const x = 20 + index * (barW + gap);
+            const barHeight = Math.max((item.value / maxValue) * barMaxH, 2);
+            const y = chartH - 46 - barHeight;
+            const lx = x + barW / 2;
+            const ly = chartH - 6;
             return (
-              <g key={`${item.label}-${index}`}>
-                <rect x={x} y={y} width={width} height={barHeight} rx={8} fill="#b5532e" opacity="0.86" />
-                <text x={x + width / 2} y={198} textAnchor="middle" fontSize="10" fill="#6f5c49">
-                  {item.label.slice(0, 10)}
+              <g key={item.label + index}>
+                <rect x={x} y={y} width={barW} height={barHeight} rx={5} fill="#b5532e" opacity="0.82" />
+                <title>{item.label + ": " + item.value.toLocaleString()}</title>
+                <text
+                  x={lx}
+                  y={ly}
+                  textAnchor="end"
+                  fontSize="9"
+                  fill="#6f5c49"
+                  transform={`rotate(-40,${lx},${ly})`}
+                >
+                  {item.label.slice(0, 16)}
                 </text>
               </g>
             );
           })}
         </svg>
       </div>
-      <div className="chart-caption">Bar preview generated from `metric_value` against the first dimension column.</div>
+      <div className="chart-caption">Top {data.length} results. Hover bars for exact values.</div>
     </div>
   );
 }
@@ -67,8 +84,8 @@ function LineView({ spec }: PlotPreviewProps) {
             strokeWidth="3"
             points={points.map((point) => `${point.x},${point.y}`).join(" ")}
           />
-          {points.map((point) => (
-            <g key={point.label}>
+          {points.map((point, index) => (
+            <g key={`${point.label}-${index}`}>
               <circle cx={point.x} cy={point.y} r="4" fill="#1f6d57" />
             </g>
           ))}

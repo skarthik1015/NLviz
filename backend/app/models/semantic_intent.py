@@ -31,4 +31,4 @@ class SemanticIntent(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     order_by: Literal["metric_desc", "metric_asc", "time_asc", "time_desc"] = "metric_desc"
-    limit: int = 100
+    limit: int = Field(default=100, ge=1, le=5000)

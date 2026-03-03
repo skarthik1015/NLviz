@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import { sendChatQuestion } from "../lib/api";
 import { buildPlotSpec } from "../lib/plot-spec";
@@ -12,6 +12,9 @@ const EXAMPLES = [
   "Show total revenue by customer state",
   "Show order count by product category",
   "Show total revenue over time",
+  "Top 10 categories by revenue",
+  "Average delivery time by seller state",
+  "Revenue in 2018 by product category",
 ];
 
 export function ChatWorkbench() {
@@ -21,19 +24,19 @@ export function ChatWorkbench() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
-    const nextQuestion = String(formData.get("question") ?? "").trim();
-    if (!nextQuestion) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmed = question.trim();
+    if (!trimmed) {
       setError("Enter a question before submitting.");
       return;
     }
 
-    setQuestion(nextQuestion);
     setError(null);
     setIsSubmitting(true);
 
     try {
-      const response = await sendChatQuestion(nextQuestion);
+      const response = await sendChatQuestion(trimmed);
       setResult(response);
       setPlotSpec(buildPlotSpec(response));
     } catch (submissionError) {
@@ -52,15 +55,14 @@ export function ChatWorkbench() {
   return (
     <div className="workspace">
       <section className="panel composer">
-        <form action={handleSubmit} className="composer-grid">
+        <form onSubmit={handleSubmit} className="composer-grid">
           <label className="label">
             Ask a business question
             <textarea
               className="textarea"
-              name="question"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="For example: Show average order value by payment type"
+              placeholder="For example: Top 10 sellers by revenue"
             />
           </label>
           <div className="pill-row">
@@ -78,10 +80,10 @@ export function ChatWorkbench() {
           </div>
           <div className="toolbar">
             <div className="status">
-              {isSubmitting ? "Running semantic query pipeline..." : "Ready to query the backend API."}
+              {isSubmitting ? "Running semantic query pipeline…" : "Ready to query the backend API."}
             </div>
             <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Querying..." : "Run Query"}
+              {isSubmitting ? "Querying…" : "Run Query"}
             </button>
           </div>
           {error ? <div className="error">{error}</div> : null}
@@ -89,62 +91,90 @@ export function ChatWorkbench() {
       </section>
 
       {result ? (
-        <div className="results">
-          <div className="stack">
+        <div className="results-grid">
+
+          <section className="panel section chart-panel">
+            <h2 className="section-title">
+              {result.intent.metric.replaceAll("_", " ")}
+              {result.intent.dimensions.length > 0
+                ? ` by ${result.intent.dimensions.join(", ").replaceAll("_", " ")}`
+                : ""}
+              {result.intent.time_dimension ? " over time" : ""}
+            </h2>
+            <div className="chart-row">
+              <div className="chart-area">
+                {plotSpec ? <PlotPreview spec={plotSpec} /> : <div className="empty">No chart available.</div>}
+              </div>
+              <div className="stats-sidebar">
+                <div className="stat-card">
+                  <div className="stat-label">Rows</div>
+                  <div className="stat-value">{result.row_count}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Metric</div>
+                  <div className="stat-value-sm">{result.intent.metric.replaceAll("_", " ")}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Dimensions</div>
+                  <div className="stat-value-sm">
+                    {result.intent.dimensions.length > 0
+                      ? result.intent.dimensions.join(", ").replaceAll("_", " ")
+                      : "none"}
+                  </div>
+                </div>
+                {result.intent.start_date && (
+                  <div className="stat-card">
+                    <div className="stat-label">Date filter</div>
+                    <div className="stat-value-sm">
+                      {result.intent.start_date} → {result.intent.end_date}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <div className="lower-grid">
             <section className="panel section">
               <h2 className="section-title">Tabular Result</h2>
               <ResultsTable rows={result.rows} />
             </section>
 
-            <section className="panel section">
-              <h2 className="section-title">Compiled SQL</h2>
-              <pre className="code">{result.sql}</pre>
-            </section>
-          </div>
+            <div className="stack">
+              <section className="panel section">
+                <h2 className="section-title">Execution Trace</h2>
+                <div className="trace">
+                  {result.trace.map((item, index) => (
+                    <div className="trace-item" key={`${index}-${item}`}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-          <div className="stack">
-            <section className="panel section">
-              <h2 className="section-title">Plot Preview</h2>
-              {plotSpec ? <PlotPreview spec={plotSpec} /> : <div className="empty">No plot available yet.</div>}
-            </section>
+              <section className="panel section">
+                <h2 className="section-title">Compiled SQL</h2>
+                <pre className="code">{result.sql}</pre>
+              </section>
 
-            <section className="panel section">
-              <h2 className="section-title">Plot Spec</h2>
-              <pre className="code">{plotSpec ? JSON.stringify(plotSpec, null, 2) : "{}"}</pre>
-            </section>
-
-            <section className="panel section">
-              <h2 className="section-title">Execution Trace</h2>
-              <div className="trace">
-                {result.trace.map((item) => (
-                  <div className="trace-item" key={item}>
-                    {item}
+              <section className="panel section">
+                <h2 className="section-title">Query Metadata</h2>
+                <div className="meta-grid">
+                  <div className="meta-row">
+                    <span className="meta-key">Query ID</span>
+                    <span className="meta-val">{result.query_id}</span>
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel section">
-              <h2 className="section-title">Query Metadata</h2>
-              <div className="meta-grid">
-                <div className="meta-row">
-                  <span className="meta-key">Query ID</span>
-                  <span>{result.query_id}</span>
+                  <div className="meta-row">
+                    <span className="meta-key">Order</span>
+                    <span>{result.intent.order_by}</span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-key">Limit</span>
+                    <span>{result.intent.limit}</span>
+                  </div>
                 </div>
-                <div className="meta-row">
-                  <span className="meta-key">Metric</span>
-                  <span>{result.intent.metric}</span>
-                </div>
-                <div className="meta-row">
-                  <span className="meta-key">Rows</span>
-                  <span>{result.row_count}</span>
-                </div>
-                <div className="meta-row">
-                  <span className="meta-key">Order</span>
-                  <span>{result.intent.order_by}</span>
-                </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         </div>
       ) : (
