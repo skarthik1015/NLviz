@@ -7,13 +7,13 @@ type ApiErrorPayload = {
   detail?: string;
 };
 
-export async function sendChatQuestion(question: string): Promise<ChatResponse> {
+export async function sendChatQuestion(question: string, debug = false): Promise<ChatResponse> {
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, debug }),
     cache: "no-store",
   });
 

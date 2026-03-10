@@ -3,8 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { sendChatQuestion } from "../lib/api";
-import { buildPlotSpec } from "../lib/plot-spec";
-import { ChatResponse, PlotSpec } from "../lib/types";
+import { ChatResponse } from "../lib/types";
 import { PlotPreview } from "./plot-preview";
 import { ResultsTable } from "./results-table";
 
@@ -20,9 +19,9 @@ const EXAMPLES = [
 export function ChatWorkbench() {
   const [question, setQuestion] = useState(EXAMPLES[0]);
   const [result, setResult] = useState<ChatResponse | null>(null);
-  const [plotSpec, setPlotSpec] = useState<PlotSpec | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,12 +35,10 @@ export function ChatWorkbench() {
     setIsSubmitting(true);
 
     try {
-      const response = await sendChatQuestion(trimmed);
+      const response = await sendChatQuestion(trimmed, showDebug);
       setResult(response);
-      setPlotSpec(buildPlotSpec(response));
     } catch (submissionError) {
       setResult(null);
-      setPlotSpec(null);
       setError(
         submissionError instanceof Error
           ? submissionError.message
@@ -51,6 +48,8 @@ export function ChatWorkbench() {
       setIsSubmitting(false);
     }
   }
+
+  const traceItems = showDebug && result?.debug_trace ? result.debug_trace : result?.trace ?? [];
 
   return (
     <div className="workspace">
@@ -82,6 +81,10 @@ export function ChatWorkbench() {
             <div className="status">
               {isSubmitting ? "Running semantic query pipeline..." : "Ready to query the backend API."}
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "var(--muted)" }}>
+              <input type="checkbox" checked={showDebug} onChange={(e) => setShowDebug(e.target.checked)} />
+              Debug trace
+            </label>
             <button className="button" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Querying..." : "Run Query"}
             </button>
@@ -100,9 +103,16 @@ export function ChatWorkbench() {
                 : ""}
               {result.intent.time_dimension ? " over time" : ""}
             </h2>
+
+            {result.explanation ? (
+              <p style={{ fontSize: "0.9rem", color: "var(--muted)", margin: "0 0 12px 0", lineHeight: 1.5 }}>
+                {result.explanation}
+              </p>
+            ) : null}
+
             <div className="chart-row">
               <div className="chart-area">
-                {plotSpec ? <PlotPreview spec={plotSpec} /> : <div className="empty">No chart available.</div>}
+                <PlotPreview spec={result.chart_spec} />
               </div>
               <div className="stats-sidebar">
                 <div className="stat-card">
@@ -129,6 +139,12 @@ export function ChatWorkbench() {
                     </div>
                   </div>
                 )}
+                {result.validation_status && result.validation_status !== "ok" && (
+                  <div className="stat-card">
+                    <div className="stat-label">Validation</div>
+                    <div className="stat-value-sm">{result.validation_status}</div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -141,9 +157,11 @@ export function ChatWorkbench() {
 
             <div className="stack">
               <section className="panel section">
-                <h2 className="section-title">Execution Trace</h2>
+                <h2 className="section-title">
+                  {showDebug && result.debug_trace ? "Debug Trace" : "Execution Trace"}
+                </h2>
                 <div className="trace">
-                  {result.trace.map((item, index) => (
+                  {traceItems.map((item, index) => (
                     <div className="trace-item" key={`${index}-${item}`}>
                       {item}
                     </div>
@@ -182,7 +200,7 @@ export function ChatWorkbench() {
         </div>
       ) : (
         <section className="panel empty">
-          Submit a question to inspect the API response, generated SQL, table rows, and derived plot spec.
+          Submit a question to inspect the API response, generated SQL, table rows, and chart.
         </section>
       )}
     </div>

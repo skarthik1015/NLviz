@@ -26,6 +26,13 @@ export type SemanticIntent = {
   limit: number;
 };
 
+/** Plotly figure JSON as returned by the backend chart_selector node. */
+export type PlotlyFigure = {
+  data: unknown[];
+  layout: Record<string, unknown>;
+  frames?: unknown[];
+};
+
 export type ChatResponse = {
   query_id: string;
   question: string;
@@ -35,8 +42,13 @@ export type ChatResponse = {
   rows: Array<Record<string, unknown>>;
   row_count: number;
   trace: string[];
+  validation_status: string;
+  chart_spec: PlotlyFigure | null;
+  explanation: string | null;
+  debug_trace: string[] | null;
 };
 
+// Legacy types kept for plot-spec.ts fallback — no longer used in main UI
 export type PlotSeriesDatum = {
   label: string;
   value: number;
