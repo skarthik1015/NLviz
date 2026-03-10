@@ -22,9 +22,11 @@ export function buildPlotSpec(response: ChatResponse): PlotSpec {
     ? (candidateKeys.find((key) => key === "time_bucket") ?? candidateKeys[0] ?? null)
     : (candidateKeys[0] ?? null);
 
+  // Determine chart type from intent semantics, not from data shape, so that
+  // empty-result queries (0 rows) still get the correct chart type.
   const chartType: PlotSpec["chart_type"] = response.intent.time_dimension
     ? "line"
-    : xKey
+    : response.intent.dimensions.length > 0
       ? "bar"
       : "stat";
 
