@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from app.agent import QueryGraphRunner
 from app.models import ChatResponse, SemanticIntent
+
+if TYPE_CHECKING:
+    from app.agent.graph import QueryGraphRunner
 
 
 class QueryService:
     def __init__(self, query_graph: QueryGraphRunner):
         self.query_graph = query_graph
 
-    def run_question(self, question: str, explicit_intent: SemanticIntent | None = None) -> ChatResponse:
+    def run_question(
+        self,
+        question: str,
+        explicit_intent: SemanticIntent | None = None,
+        debug: bool = False,
+    ) -> ChatResponse:
         query_id = str(uuid4())
         state = self.query_graph.invoke(
             question=question,
@@ -32,5 +40,9 @@ class QueryService:
             sql=sql,
             rows=state.get("rows", []),
             row_count=state.get("row_count", 0),
-            trace=state.get("trace", []),
+            trace=state.get("user_trace", []),
+            validation_status=state.get("validation_status", ""),
+            chart_spec=state.get("chart_spec"),
+            explanation=state.get("explanation"),
+            debug_trace=state.get("debug_trace") if debug else None,
         )

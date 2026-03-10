@@ -4,6 +4,7 @@ services:
   backend:
     build:
       context: ./backend
+    command: ["python", "bootstrap_start.py"]
     ports:
       - "8000:8000"
     environment:

@@ -21,7 +21,8 @@ def build_executor_node(connector: DataConnector) -> Callable[[AgentState], Agen
         return {
             "rows": dataframe.to_dict(orient="records"),
             "row_count": row_count,
-            "trace": [f"Executor: returned {row_count} rows"],
+            "user_trace": [f"Query executed: {row_count} row(s) returned"],
+            "debug_trace": [f"Executor: row_count={row_count}, limit={intent.limit}"],
         }
 
     return node

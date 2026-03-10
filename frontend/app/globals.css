@@ -9,6 +9,8 @@
   --accent-soft: #f2c8ac;
   --success: #1f6d57;
   --shadow: 0 18px 50px rgba(58, 34, 12, 0.1);
+  --chart-viewport-height: 420px;
+  --trace-max-height: 260px;
 }
 
 * {
@@ -19,6 +21,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  overflow-x: clip;
   background:
     radial-gradient(circle at top left, rgba(255, 226, 196, 0.9), transparent 32%),
     radial-gradient(circle at top right, rgba(234, 201, 167, 0.8), transparent 28%),
@@ -78,6 +81,7 @@ textarea {
 .workspace {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .panel {
@@ -86,6 +90,7 @@ textarea {
   border-radius: 24px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
+  min-width: 0;
 }
 
 .composer {
@@ -224,6 +229,9 @@ textarea {
 .trace {
   display: grid;
   gap: 10px;
+  max-height: var(--trace-max-height);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .trace-item {
@@ -237,12 +245,15 @@ textarea {
 .chart-shell {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .chart-canvas {
-  height: 260px;
+  height: var(--chart-viewport-height);
   padding: 14px;
   border-radius: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(249, 238, 223, 0.8)),
     repeating-linear-gradient(
@@ -253,6 +264,13 @@ textarea {
       rgba(56, 43, 29, 0.05) 48px
     );
   border: 1px solid rgba(56, 43, 29, 0.08);
+}
+
+.chart-canvas .js-plotly-plot,
+.chart-canvas .plot-container,
+.chart-canvas .svg-container {
+  height: 100% !important;
+  min-height: 100% !important;
 }
 
 .chart-caption {
@@ -303,13 +321,15 @@ textarea {
 .results-grid {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .chart-row {
   display: grid;
   grid-template-columns: 1fr 200px;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .chart-area {
@@ -318,7 +338,12 @@ textarea {
 
 .stats-sidebar {
   display: grid;
+  grid-auto-rows: min-content;
   gap: 12px;
+  max-height: var(--chart-viewport-height);
+  overflow-y: auto;
+  padding-right: 4px;
+  min-width: 0;
 }
 
 .stat-card {
@@ -353,6 +378,11 @@ textarea {
   display: grid;
   gap: 20px;
   grid-template-columns: 1.4fr 1fr;
+  min-width: 0;
+}
+
+.stack {
+  min-width: 0;
 }
 
 .meta-val {
@@ -363,6 +393,10 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  :root {
+    --chart-viewport-height: 320px;
+  }
+
   .chart-row {
     grid-template-columns: 1fr;
   }

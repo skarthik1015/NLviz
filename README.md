@@ -4,9 +4,9 @@ Natural-language analytics MVP with a deterministic semantic SQL compiler.
 
 The current repo contains:
 - a FastAPI backend that maps a question to `SemanticIntent`, compiles SQL from a governed semantic YAML, validates SQL safety, and executes against DuckDB
-- a LangGraph skeleton that orchestrates `intent_mapper -> sql_builder -> executor`
+- a LangGraph pipeline that orchestrates `intent_mapper -> sql_builder -> executor -> validator -> chart_selector -> explainer`
 - a minimal Next.js frontend that calls `/chat`, renders a results table, and shows a derived plot spec
-- deterministic backend tests, including a 10-case golden suite and SQL safety coverage
+- deterministic backend tests, including a 20-case golden suite with an 80% accuracy gate and SQL safety coverage
 
 ## Current Status
 
@@ -14,13 +14,11 @@ Implemented now:
 - DuckDB-backed backend MVP
 - Semantic layer loader and deterministic SQL builder
 - SQL safety validation with `sqlglot`
-- LangGraph execution skeleton
+- LangGraph execution pipeline with validation, chart selection, and explanation
 - Minimal frontend chat page
 - CI test workflow for backend and frontend checks
 
 Not implemented yet:
-- LLM-backed intent mapping
-- backend-owned chart selector/spec generator
 - persistent query history / feedback storage
 - infrastructure and deployment workflows
 
@@ -77,14 +75,7 @@ Open `http://localhost:3000`.
 
 The compose setup expects the source dataset CSVs in `backend/data/raw/`.
 
-1. Seed the DuckDB file:
-
-```bash
-docker compose build backend
-docker compose run --rm backend python seed.py
-```
-
-2. Start the app:
+1. Start the app (first boot auto-seeds DuckDB if missing):
 
 ```bash
 docker compose up --build
@@ -122,6 +113,7 @@ Frontend:
 
 ## Notes
 
-- The current golden suite is deterministic and designed around the heuristic mapper. When the LLM mapper replaces it, update the golden cases rather than deleting them.
-- The frontend currently derives a plot spec client-side. The planned production architecture moves chart selection to the backend.
+- The golden suite is deterministic and validates semantic compilation and orchestration behavior; keep cases aligned with supported intent patterns.
+- The intent mapper runs LLM-first with heuristic fallback for resiliency.
+- The frontend shows `Invalid/ Unsafe Query` for blocked or invalid requests.
 - The architecture document at `docs/ARCHITECTURE.md` describes the current implemented system and the next planned increments.

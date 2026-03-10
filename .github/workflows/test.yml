@@ -28,6 +28,9 @@ jobs:
       - name: Run backend test suite
         run: pytest
 
+      - name: Run golden accuracy gate
+        run: python tests/golden_tests.py
+
   frontend-checks:
     runs-on: ubuntu-latest
     defaults:

@@ -15,6 +15,8 @@ class DuckDBConnector(DataConnector):
         default_db = Path(__file__).resolve().parents[2] / "data" / "ecommerce.duckdb"
         self.db_path = Path(db_path) if db_path else default_db
         self._identifier_pattern = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+        self._cached_allowed_tables: set[str] | None = None
+        self._cached_table_columns: dict[str, set[str]] | None = None
 
     def get_connector_type(self) -> str:
         return "duckdb"
@@ -31,16 +33,24 @@ class DuckDBConnector(DataConnector):
         normalized = sql.strip().rstrip(";")
         if not re.search(r"\blimit\s+\d+\b", normalized, flags=re.IGNORECASE):
             normalized = f"{normalized} LIMIT {limit}"
-        table_names = set(self._list_tables())
-        table_columns = self._list_table_columns()
         validate_sql_safety(
             normalized,
-            allowed_tables=table_names,
-            table_columns=table_columns,
+            allowed_tables=self._get_allowed_tables(),
+            table_columns=self._get_all_table_columns(),
             max_limit=limit,
         )
         with self._connect() as conn:
             return conn.execute(normalized).df()
+
+    def _get_allowed_tables(self) -> set[str]:
+        if self._cached_allowed_tables is None:
+            self._cached_allowed_tables = set(self._list_tables())
+        return self._cached_allowed_tables
+
+    def _get_all_table_columns(self) -> dict[str, set[str]]:
+        if self._cached_table_columns is None:
+            self._cached_table_columns = self._list_table_columns()
+        return self._cached_table_columns
 
     def get_schema(self) -> SchemaContext:
         tables = self._list_tables()
@@ -51,9 +61,10 @@ class DuckDBConnector(DataConnector):
             for table_name in tables:
                 safe_table = self._quote_identifier(table_name)
                 table_metadata[table_name] = self._get_table_columns(conn, table_name)
-                row_counts[table_name] = conn.execute(
+                result = conn.execute(
                     f"SELECT COUNT(*) FROM {safe_table}"
-                ).fetchone()[0]
+                ).fetchone()
+                row_counts[table_name] = result[0] if result else 0
 
         return SchemaContext(
             tables=table_metadata,

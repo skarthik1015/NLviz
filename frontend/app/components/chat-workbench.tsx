@@ -16,12 +16,26 @@ const EXAMPLES = [
   "Revenue in 2018 by product category",
 ];
 
+const UNSAFE_PATTERNS = [
+  /ignore\s+previous\s+instructions/i,
+  /system\s+prompt/i,
+  /developer\s+instructions/i,
+  /jailbreak/i,
+  /bypass\s+safety/i,
+];
+
+function looksUnsafeQuery(input: string): boolean {
+  return UNSAFE_PATTERNS.some((pattern) => pattern.test(input));
+}
+
 export function ChatWorkbench() {
   const [question, setQuestion] = useState(EXAMPLES[0]);
   const [result, setResult] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [unsafeWarning, setUnsafeWarning] = useState<string | null>(null);
+  const [allowUnsafeSubmit, setAllowUnsafeSubmit] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,6 +45,16 @@ export function ChatWorkbench() {
       return;
     }
 
+    if (looksUnsafeQuery(trimmed) && !allowUnsafeSubmit) {
+      setUnsafeWarning(
+        "That looks like a system instruction, not a data question. Confirm if you still want to submit.",
+      );
+      setError("Invalid/ Unsafe Query");
+      return;
+    }
+
+    setUnsafeWarning(null);
+    setAllowUnsafeSubmit(false);
     setError(null);
     setIsSubmitting(true);
 
@@ -60,7 +84,11 @@ export function ChatWorkbench() {
             <textarea
               className="textarea"
               value={question}
-              onChange={(event) => setQuestion(event.target.value)}
+              onChange={(event) => {
+                setQuestion(event.target.value);
+                setUnsafeWarning(null);
+                setAllowUnsafeSubmit(false);
+              }}
               placeholder="For example: Top 10 sellers by revenue"
             />
           </label>
@@ -70,7 +98,11 @@ export function ChatWorkbench() {
                 key={example}
                 className="pill"
                 type="button"
-                onClick={() => setQuestion(example)}
+                onClick={() => {
+                  setQuestion(example);
+                  setUnsafeWarning(null);
+                  setAllowUnsafeSubmit(false);
+                }}
                 disabled={isSubmitting}
               >
                 {example}
@@ -89,6 +121,22 @@ export function ChatWorkbench() {
               {isSubmitting ? "Querying..." : "Run Query"}
             </button>
           </div>
+          {unsafeWarning ? (
+            <div className="error">
+              {unsafeWarning}{" "}
+              <button
+                type="button"
+                className="pill"
+                onClick={() => {
+                  setAllowUnsafeSubmit(true);
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Confirm Intent
+              </button>
+            </div>
+          ) : null}
           {error ? <div className="error">{error}</div> : null}
         </form>
       </section>
@@ -112,7 +160,7 @@ export function ChatWorkbench() {
 
             <div className="chart-row">
               <div className="chart-area">
-                <PlotPreview spec={result.chart_spec} />
+                <PlotPreview spec={result.chart_spec} queryId={result.query_id} />
               </div>
               <div className="stats-sidebar">
                 <div className="stat-card">

@@ -18,6 +18,9 @@ export async function sendChatQuestion(question: string, debug = false): Promise
   });
 
   if (!response.ok) {
+    if (response.status === 400) {
+      throw new Error("Invalid/ Unsafe Query");
+    }
     let errorMessage = `Request failed with status ${response.status}`;
     try {
       const payload = (await response.json()) as ApiErrorPayload;

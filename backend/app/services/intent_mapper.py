@@ -17,7 +17,6 @@ from app.semantic import SemanticRegistry
 logger = logging.getLogger(__name__)
 
 IntentSource = Literal["heuristic", "llm", "llm_fallback", "explicit"]
-_EMPTY_SCHEMA = SchemaContext(tables={}, row_counts={}, join_paths=[])
 
 
 class IntentMappingError(ValueError):
@@ -30,27 +29,27 @@ class IntentValidationError(ValueError):
 
 @dataclass(frozen=True)
 class IntentMapperConfig:
-    mode: Literal["heuristic", "llm"] = "heuristic"
-    provider: Literal["anthropic", "openai", "bedrock"] | None = None
-    model: str | None = None
+    mode: Literal["heuristic", "llm"] = "llm"
+    provider: Literal["anthropic", "openai", "bedrock"] | None = "anthropic"
+    model: str | None = "claude-sonnet-4-5"
     timeout_ms: int = 8000
     fallback_to_heuristic: bool = True
     debug_logging: bool = False
 
     @classmethod
     def from_env(cls) -> "IntentMapperConfig":
-        mode = os.getenv("INTENT_MODE", "heuristic").strip().lower() or "heuristic"
+        mode = os.getenv("INTENT_MODE", "llm").strip().lower() or "llm"
         if mode not in {"heuristic", "llm"}:
             raise ValueError("INTENT_MODE must be one of: heuristic, llm")
 
-        provider_value = os.getenv("LLM_PROVIDER", "").strip().lower() or None
+        provider_value = os.getenv("LLM_PROVIDER", "anthropic").strip().lower() or None
         if provider_value and provider_value not in {"anthropic", "openai", "bedrock"}:
             raise ValueError("LLM_PROVIDER must be one of: anthropic, openai, bedrock")
 
         return cls(
             mode=mode,
             provider=provider_value,  # type: ignore[arg-type]
-            model=os.getenv("LLM_MODEL", "").strip() or None,
+            model=os.getenv("LLM_MODEL", "claude-sonnet-4-5").strip() or None,
             timeout_ms=int(os.getenv("LLM_INTENT_TIMEOUT_MS", "8000")),
             fallback_to_heuristic=_parse_bool(os.getenv("LLM_INTENT_FALLBACK", "true")),
             debug_logging=_parse_bool(os.getenv("INTENT_DEBUG_LOGGING", "false")),
@@ -127,11 +126,8 @@ def validate_semantic_intent(
             errors.append(f"Unknown dimension '{dimension_name}'")
             continue
 
-        missing_tables = sorted(
-            _parse_table_ref(table_ref)
-            for table_ref in dimension.required_tables
-            if _parse_table_ref(table_ref) not in available_tables
-        )
+        parsed_tables = [_parse_table_ref(t) for t in dimension.required_tables]
+        missing_tables = sorted(t for t in parsed_tables if t not in available_tables)
         if missing_tables:
             errors.append(
                 f"Dimension '{dimension_name}' depends on unknown tables: {', '.join(missing_tables)}"
@@ -144,22 +140,16 @@ def validate_semantic_intent(
             errors.append(f"Unknown filter dimension '{filter_condition.dimension}'")
             continue
 
-        missing_tables = sorted(
-            _parse_table_ref(table_ref)
-            for table_ref in filter_dimension.required_tables
-            if _parse_table_ref(table_ref) not in available_tables
-        )
+        parsed_tables = [_parse_table_ref(t) for t in filter_dimension.required_tables]
+        missing_tables = sorted(t for t in parsed_tables if t not in available_tables)
         if missing_tables:
             errors.append(
                 f"Filter dimension '{filter_condition.dimension}' depends on unknown tables: {', '.join(missing_tables)}"
             )
 
     if metric is not None:
-        missing_tables = sorted(
-            _parse_table_ref(table_ref)
-            for table_ref in metric.required_tables
-            if _parse_table_ref(table_ref) not in available_tables
-        )
+        parsed_tables = [_parse_table_ref(t) for t in metric.required_tables]
+        missing_tables = sorted(t for t in parsed_tables if t not in available_tables)
         if missing_tables:
             errors.append(
                 f"Metric '{intent.metric}' depends on unknown tables: {', '.join(missing_tables)}"
@@ -323,8 +313,12 @@ class HeuristicIntentMapper:
 
 class AnthropicCompletionClient:
     def __init__(self) -> None:
-        from anthropic import Anthropic
-
+        try:
+            from anthropic import Anthropic
+        except ModuleNotFoundError as exc:
+            raise IntentMappingError(
+                "Anthropic provider requires the 'anthropic' package: pip install anthropic"
+            ) from exc
         self._client = Anthropic()
 
     def complete_json(
@@ -348,8 +342,12 @@ class AnthropicCompletionClient:
 
 class OpenAICompletionClient:
     def __init__(self) -> None:
-        from openai import OpenAI
-
+        try:
+            from openai import OpenAI
+        except ModuleNotFoundError as exc:
+            raise IntentMappingError(
+                "OpenAI provider requires the 'openai' package: pip install openai"
+            ) from exc
         self._client = OpenAI()
 
     def complete_json(
@@ -519,6 +517,80 @@ def _strip_json_fences(payload: str) -> str:
     return candidate
 
 
+def _extract_intent_with_instructor(
+    *,
+    provider: Literal["anthropic", "openai", "bedrock"] | None,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    timeout_ms: int,
+) -> SemanticIntent:
+    try:
+        import instructor
+    except ModuleNotFoundError as exc:
+        raise IntentMappingError("Instructor is required for LLM-first intent mapping") from exc
+
+    if provider == "openai":
+        try:
+            from openai import OpenAI
+        except ModuleNotFoundError as exc:
+            raise IntentMappingError("OpenAI provider requires the 'openai' package") from exc
+        client = instructor.from_openai(OpenAI())
+        return client.chat.completions.create(
+            model=model,
+            temperature=0,
+            response_model=SemanticIntent,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            timeout=timeout_ms / 1000,
+        )
+
+    if provider == "anthropic":
+        try:
+            from anthropic import Anthropic
+        except ModuleNotFoundError as exc:
+            raise IntentMappingError("Anthropic provider requires the 'anthropic' package") from exc
+        client = instructor.from_anthropic(Anthropic())
+        return client.messages.create(
+            model=model,
+            max_tokens=800,
+            temperature=0,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+            response_model=SemanticIntent,
+            timeout=timeout_ms / 1000,
+        )
+
+    raise IntentMappingError("Instructor intent mapping is not configured for this provider")
+
+
+def _extract_intent_from_json_client(
+    *,
+    client: LLMCompletionClient,
+    system_prompt: str,
+    user_prompt: str,
+    model: str,
+    timeout_ms: int,
+) -> SemanticIntent:
+    raw = client.complete_json(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        model=model,
+        timeout_ms=timeout_ms,
+    )
+    try:
+        payload = json.loads(_strip_json_fences(raw))
+    except json.JSONDecodeError as exc:
+        raise IntentMappingError(f"LLM output was not valid JSON: {exc}") from exc
+
+    try:
+        return SemanticIntent.model_validate(payload)
+    except ValidationError as exc:
+        raise IntentMappingError(f"LLM output did not match SemanticIntent schema: {exc}") from exc
+
+
 class LLMIntentMapper:
     def __init__(
         self,
@@ -537,23 +609,35 @@ class LLMIntentMapper:
     ) -> SemanticIntent:
         if not self._config.model:
             raise IntentMappingError("LLM_MODEL must be set when INTENT_MODE=llm")
-
-        raw = self._client.complete_json(
-            system_prompt=_build_system_prompt(),
-            user_prompt=_build_user_prompt(question, registry, schema),
-            model=self._config.model,
-            timeout_ms=self._config.timeout_ms,
-        )
+        system_prompt = _build_system_prompt()
+        user_prompt = _build_user_prompt(question, registry, schema)
+        primary_error: Exception | None = None
 
         try:
-            payload = json.loads(_strip_json_fences(raw))
-        except json.JSONDecodeError as exc:
-            raise IntentMappingError(f"LLM output was not valid JSON: {exc}") from exc
+            return _extract_intent_with_instructor(
+                provider=self._config.provider,
+                model=self._config.model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                timeout_ms=self._config.timeout_ms,
+            )
+        except Exception as exc:
+            primary_error = exc
 
         try:
-            return SemanticIntent.model_validate(payload)
-        except ValidationError as exc:
-            raise IntentMappingError(f"LLM output did not match SemanticIntent schema: {exc}") from exc
+            return _extract_intent_from_json_client(
+                client=self._client,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                model=self._config.model,
+                timeout_ms=self._config.timeout_ms,
+            )
+        except Exception as exc:
+            if primary_error is None:
+                raise IntentMappingError(str(exc)) from exc
+            raise IntentMappingError(
+                f"Instructor mapping failed ({primary_error}); JSON fallback failed ({exc})"
+            ) from exc
 
 
 class IntentMapperRouter:
@@ -680,7 +764,3 @@ class IntentMapperRouter:
         if self._config.debug_logging:
             extra["question"] = question
         logger.warning("LLM intent mapping failed", extra=extra)
-
-
-def map_question_to_intent(question: str) -> SemanticIntent:
-    return HeuristicIntentMapper().map(question, registry=None, schema=_EMPTY_SCHEMA)  # type: ignore[arg-type]

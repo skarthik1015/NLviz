@@ -70,15 +70,17 @@ class StaticMapper:
 def test_query_graph_uses_explicit_intent_without_mapper():
     connector = StubConnector()
     schema_context = connector.get_schema()
+    intent_config = IntentMapperConfig(mode="heuristic")
     runner = QueryGraphRunner(
         QueryGraphDependencies(
             connector=connector,
             schema_context=schema_context,
             registry=_load_registry(),
             intent_mapper=IntentMapperRouter(
-                config=IntentMapperConfig(),
+                config=intent_config,
                 heuristic_mapper=ExplodingMapper(),
             ),
+            intent_config=intent_config,
         )
     )
 
@@ -94,19 +96,20 @@ def test_query_graph_uses_explicit_intent_without_mapper():
     assert state["row_count"] == 2
     assert "COUNT(DISTINCT orders.order_id) AS metric_value" in state["sql"]
     assert connector.executed_sql == [state["sql"]]
-    assert state["trace"][0] == "Intent mapper: using explicit intent for metric 'order_count'"
+    assert state["user_trace"][0].startswith("Understood:")
 
 
 def test_query_service_runs_langgraph_pipeline_end_to_end():
     connector = StubConnector()
     schema_context = connector.get_schema()
+    intent_config = IntentMapperConfig(mode="heuristic")
     runner = QueryGraphRunner(
         QueryGraphDependencies(
             connector=connector,
             schema_context=schema_context,
             registry=_load_registry(),
             intent_mapper=IntentMapperRouter(
-                config=IntentMapperConfig(),
+                config=intent_config,
                 heuristic_mapper=StaticMapper(
                     SemanticIntent(
                         metric="total_revenue",
@@ -118,6 +121,7 @@ def test_query_service_runs_langgraph_pipeline_end_to_end():
                     )
                 ),
             ),
+            intent_config=intent_config,
         )
     )
     service = QueryService(query_graph=runner)
@@ -130,10 +134,8 @@ def test_query_service_runs_langgraph_pipeline_end_to_end():
     assert response.rows[0]["customer_state"] == "SP"
     assert "DATE_TRUNC('month', orders.order_purchase_timestamp) AS time_bucket" in response.sql
     assert "SUM(op.payment_value) AS metric_value" in response.sql
-    assert response.trace == [
-        "Intent mapper: source=heuristic",
-        "Intent mapper: selected metric 'total_revenue'",
-        "Intent mapper: resolved dimensions customer_state",
-        "SQL builder: compiled deterministic SQL from semantic registry",
-        "Executor: returned 2 rows",
-    ]
+    assert response.trace[0].startswith("Understood:")
+    assert "SQL compiled from semantic model" in response.trace
+    assert "Query executed: 2 row(s) returned" in response.trace
+    assert "Validated: 2 rows" in response.trace
+    assert "Summary generated" in response.trace

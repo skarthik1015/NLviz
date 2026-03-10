@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.dependencies import get_feedback_store
 from app.models import FeedbackRequest, FeedbackResponse
-from app.services import FeedbackStore
+from app.services.feedback_store import FeedbackStore
 
 router = APIRouter(tags=["feedback"])
 

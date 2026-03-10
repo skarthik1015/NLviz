@@ -18,7 +18,18 @@ class AgentState(TypedDict, total=False):
     sql: str | None
     rows: list[dict[str, Any]]
     row_count: int
-    trace: TraceMessages
+    # Dual-level traces: user_trace is friendly, debug_trace is technical
+    user_trace: TraceMessages
+    debug_trace: TraceMessages
+    # Validator / self-correction
+    validation_status: str  # "ok" | "empty" | "truncated" | "failed"
+    validation_errors: list[str]
+    retry_count: int
+    correction_hint: str | None  # e.g. "remove_date_filters" or "reduce_limit:50"
+    # Chart
+    chart_spec: dict[str, Any] | None
+    # Explanation
+    explanation: str | None
 
 
 def build_initial_state(
@@ -36,5 +47,12 @@ def build_initial_state(
         "sql": None,
         "rows": [],
         "row_count": 0,
-        "trace": [],
+        "user_trace": [],
+        "debug_trace": [],
+        "validation_status": "",
+        "validation_errors": [],
+        "retry_count": 0,
+        "correction_hint": None,
+        "chart_spec": None,
+        "explanation": None,
     }

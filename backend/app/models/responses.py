@@ -11,6 +11,7 @@ from .semantic_intent import SemanticIntent
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1)
     intent: SemanticIntent | None = None
+    debug: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -21,7 +22,11 @@ class ChatResponse(BaseModel):
     sql: str
     rows: list[dict[str, Any]]
     row_count: int
-    trace: list[str]
+    trace: list[str]  # user-friendly trace, always present
+    validation_status: str = ""
+    chart_spec: dict[str, Any] | None = None
+    explanation: str | None = None
+    debug_trace: list[str] | None = None  # only populated when request.debug=True
 
 
 class SchemaResponse(BaseModel):

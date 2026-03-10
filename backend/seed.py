@@ -36,13 +36,14 @@ def seed():
             SELECT * FROM read_csv_auto('{filepath.as_posix()}', header=true)
         """)
         loaded_tables.add(table_name)
-        count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        result = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+        count = result[0] if result else 0
         print(f"Loaded {table_name}: {count:,} rows")
 
     # Join English category names onto products
     if {"products", "category_translation"}.issubset(loaded_tables):
+        conn.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_category_name_english TEXT")
         conn.execute("""
-            ALTER TABLE products ADD COLUMN IF NOT EXISTS product_category_name_english TEXT;
             UPDATE products
             SET product_category_name_english = ct.product_category_name_english
             FROM category_translation ct

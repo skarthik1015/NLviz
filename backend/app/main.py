@@ -21,7 +21,8 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        app.state.connector.close()
+        if hasattr(app.state.connector, "close"):
+            app.state.connector.close()
 
 
 app = FastAPI(title="NL Query Tool API", version="0.1.0", lifespan=lifespan)
