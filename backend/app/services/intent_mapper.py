@@ -179,33 +179,79 @@ def validate_semantic_intent(
     return intent
 
 
-_METRIC_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("average_order_value", ("average order value", "aov", "avg order value", "mean order value")),
-    (
-        "average_review_score",
-        ("review score", "average review", "avg review", "rating", "ratings", "customer satisfaction"),
-    ),
-    (
-        "average_delivery_days",
-        ("delivery time", "delivery days", "shipping time", "how long to deliver", "days to deliver"),
-    ),
-    ("cancellation_rate", ("cancellation rate", "cancel rate", "cancellation", "cancelled orders", "cancellations")),
-    ("total_revenue", ("revenue", "sales", "gmv", "total sales", "income", "earnings")),
-    ("order_count", ("order count", "number of orders", "orders placed", "how many orders", "orders")),
-)
+def _build_dynamic_metric_keywords(
+    registry: SemanticRegistry,
+) -> list[tuple[str, list[str]]]:
+    """Generate keyword tuples dynamically from registry metrics.
 
-_DIMENSION_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("seller_state", ("seller state", "by seller", "per seller location")),
-    ("customer_state", ("customer state", "by state", "by region", "per state", "state", "region")),
-    ("customer_id", ("by customer", "customer id")),
-    (
-        "product_category",
-        ("product category", "by category", "per category", "category", "categories", "product type", "item type"),
-    ),
-    ("payment_type", ("payment method", "payment type", "by payment", "how paid")),
-    ("order_status", ("order status", "by status", "status")),
-    ("review_score", ("by review score", "by rating")),
-)
+    Uses display_name and name parts only — description words are intentionally
+    excluded to avoid cross-metric contamination (e.g. "orders" appearing in a
+    revenue metric description).  Plural forms are added for name parts so that
+    "orders" matches order_count without requiring an exact singular match.
+    """
+    result: list[tuple[str, list[str]]] = []
+    for metric in registry.schema.metrics:
+        keywords: list[str] = []
+        keywords.append(metric.display_name.lower())
+        keywords.extend(metric.name.replace("_", " ").lower().split())
+        keywords.append(metric.name.replace("_", " ").lower())
+        # Also add simple plural forms of name parts to match question variants
+        for word in metric.name.split("_"):
+            if len(word) > 3 and not word.endswith("s"):
+                keywords.append(word.lower() + "s")
+        result.append((metric.name, list(dict.fromkeys(keywords))))
+    return result
+
+
+_GROUPING_TAILS: frozenset[str] = frozenset({
+    "state", "type", "status", "category", "score", "rate", "method",
+    "code", "name", "city", "country", "region",
+})
+
+
+def _build_dynamic_dimension_keywords(
+    registry: SemanticRegistry,
+) -> list[tuple[str, list[str]]]:
+    """Generate keyword tuples dynamically from registry dimensions.
+
+    Two key constraints:
+    1. Tail words (e.g. "state" in customer_state) are only added as standalone
+       keywords for the FIRST dimension that uses them; duplicates must be
+       reached via compound phrase match ("seller state" → seller_state).
+    2. Head words (e.g. "customer") are NOT added as standalones for dimensions
+       with a grouping tail (state, type, status, category, score, …) because
+       the same head word typically belongs to multiple dimensions in that
+       family (customer_state, customer_id).  Only entity-identifier dims whose
+       tail is NOT a grouping suffix get head word + plural added.
+    """
+    claimed_tail_words: set[str] = set()
+    result: list[tuple[str, list[str]]] = []
+    for dim in registry.schema.dimensions:
+        keywords: list[str] = []
+        keywords.append(dim.display_name.lower())
+        keywords.append(dim.name.replace("_", " ").lower())
+        keywords.append(f"by {dim.display_name.lower()}")
+        keywords.append(f"per {dim.display_name.lower()}")
+        parts = dim.name.split("_")
+        tail_word = parts[-1].lower() if len(parts) > 1 else ""
+        is_grouping_dim = tail_word in _GROUPING_TAILS
+        for i, word in enumerate(parts):
+            if len(word) <= 2:
+                continue
+            word_lower = word.lower()
+            is_tail = i == len(parts) - 1 and len(parts) > 1
+            if is_tail:
+                if word_lower not in claimed_tail_words:
+                    keywords.append(word_lower)
+                    claimed_tail_words.add(word_lower)
+            else:
+                # Head / middle word: only add as standalone for non-grouping dims
+                if not is_grouping_dim:
+                    keywords.append(word_lower)
+                    if not word_lower.endswith("s"):
+                        keywords.append(word_lower + "s")
+        result.append((dim.name, list(dict.fromkeys(keywords))))
+    return result
 
 
 def _contains_phrase(question: str, phrase: str) -> bool:
@@ -213,38 +259,60 @@ def _contains_phrase(question: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){escaped}(?!\w)", question) is not None
 
 
-def _find_metric(question: str) -> str:
-    for metric_name, keywords in _METRIC_KEYWORDS:
-        if any(_contains_phrase(question, keyword) for keyword in keywords):
-            return metric_name
-    return "order_count"
+def _find_metric(question: str, registry: SemanticRegistry) -> str:
+    """Return the best-matching metric name using longest-keyword-match scoring.
+
+    Longest match wins so compound phrases like "average order value" (19 chars)
+    beat a single word like "order" (5 chars), regardless of iteration order.
+    """
+    metric_keywords = _build_dynamic_metric_keywords(registry)
+    best_metric: str | None = None
+    best_score: int = 0
+    for metric_name, keywords in metric_keywords:
+        for keyword in keywords:
+            if _contains_phrase(question, keyword) and len(keyword) > best_score:
+                best_score = len(keyword)
+                best_metric = metric_name
+    if best_metric:
+        return best_metric
+    return registry.schema.metrics[0].name if registry.schema.metrics else "order_count"
 
 
-def _find_dimensions(question: str) -> list[str]:
-    dimensions: list[str] = []
-    seller_state_matched = False
+def _find_dimensions(question: str, registry: SemanticRegistry) -> list[str]:
+    """Return all matching dimension names.
 
-    for dimension_name, keywords in _DIMENSION_KEYWORDS:
-        matched = any(_contains_phrase(question, keyword) for keyword in keywords)
-        if not matched:
+    Two-pass approach:
+    1. Compound phrase matches (keywords with spaces) are found first.
+    2. Standalone single-word matches are added only if the word was NOT the
+       trailing word of a compound match found in pass 1 — preventing e.g.
+       "seller state" from also triggering customer_state via the word "state".
+    """
+    dimension_keywords = _build_dynamic_dimension_keywords(registry)
+    matched: list[str] = []
+    suppressed_words: set[str] = set()
+
+    # Pass 1: compound phrases
+    for dimension_name, keywords in dimension_keywords:
+        for keyword in keywords:
+            if " " in keyword and _contains_phrase(question, keyword):
+                if dimension_name not in matched:
+                    matched.append(dimension_name)
+                # Suppress the last word of the matched compound
+                last_word = keyword.split()[-1]
+                suppressed_words.add(last_word)
+                break
+
+    # Pass 2: single-word keywords not suppressed by pass 1
+    for dimension_name, keywords in dimension_keywords:
+        if dimension_name in matched:
             continue
+        for keyword in keywords:
+            if " " not in keyword and keyword not in suppressed_words:
+                if _contains_phrase(question, keyword):
+                    matched.append(dimension_name)
+                    break
 
-        if dimension_name == "customer_state" and seller_state_matched and not _contains_phrase(question, "customer state"):
-            continue
-
-        if dimension_name == "seller_state":
-            seller_state_matched = True
-
-        dimensions.append(dimension_name)
-
-    if (
-        re.search(r"\b(top|bottom|first)\s+\d+\s+customers?\b", question)
-        and "customer_state" not in dimensions
-        and "customer_id" not in dimensions
-    ):
-        dimensions.append("customer_id")
-
-    return dimensions
+    return matched
 
 
 def _find_rank_limit(question: str) -> tuple[int | None, str | None]:
@@ -283,13 +351,30 @@ class HeuristicIntentMapper:
         registry: SemanticRegistry,
         schema: SchemaContext,
     ) -> SemanticIntent:
-        del registry, schema
         q = question.lower()
 
-        metric = _find_metric(q)
-        dimensions = _find_dimensions(q)
+        metric = _find_metric(q, registry)
+        dimensions = _find_dimensions(q, registry)
+
+        # Post-filter: remove dimensions whose name phrase is subsumed by the
+        # selected metric name (e.g. "review_score" dim when metric is
+        # "average_review_score" — the user is asking about the metric, not
+        # grouping by that dimension).
+        metric_phrase = metric.replace("_", " ")
+        dimensions = [
+            d for d in dimensions
+            if d.replace("_", " ") not in metric_phrase
+        ]
+
         time_granularity, has_time_trend = _detect_time_granularity(q)
-        time_dimension = "order_date" if has_time_trend else None
+
+        # Use the registry's first time dimension instead of hardcoded "order_date"
+        default_time_dim = (
+            registry.schema.time_dimensions[0].name
+            if registry.schema.time_dimensions
+            else None
+        )
+        time_dimension = default_time_dim if has_time_trend else None
         order_by: str = "time_asc" if has_time_trend else "metric_desc"
 
         rank_limit, rank_direction = _find_rank_limit(q)
@@ -452,51 +537,76 @@ def _build_system_prompt() -> str:
     )
 
 
-def _build_user_prompt(question: str, registry: SemanticRegistry, schema: SchemaContext) -> str:
-    examples = [
-        {
-            "question": "top 10 customers by revenue in 2018",
+def _build_dynamic_examples(registry: SemanticRegistry) -> list[dict]:
+    """Generate few-shot examples dynamically from the schema's metrics/dimensions."""
+    examples: list[dict] = []
+    metrics = registry.schema.metrics
+    dims = registry.schema.dimensions
+    time_dims = registry.schema.time_dimensions
+
+    if not metrics:
+        return examples
+
+    m0 = metrics[0]
+    d0 = dims[0] if dims else None
+    td0 = time_dims[0] if time_dims else None
+
+    # Example 1: breakdown (metric by dimension)
+    if d0:
+        examples.append({
+            "question": f"Top 10 {d0.display_name} by {m0.display_name}",
             "intent": {
-                "metric": "total_revenue",
-                "dimensions": ["customer_id"],
+                "metric": m0.name,
+                "dimensions": [d0.name],
                 "filters": [],
                 "time_dimension": None,
                 "time_granularity": None,
-                "start_date": "2018-01-01",
-                "end_date": "2018-12-31",
+                "start_date": None,
+                "end_date": None,
                 "order_by": "metric_desc",
                 "limit": 10,
             },
-        },
-        {
-            "question": "monthly revenue trend last 6 months",
+        })
+
+    # Example 2: trend (metric over time)
+    if td0:
+        examples.append({
+            "question": f"{td0.default_granularity}ly {m0.display_name} over time",
             "intent": {
-                "metric": "total_revenue",
+                "metric": m0.name,
                 "dimensions": [],
                 "filters": [],
-                "time_dimension": "order_date",
-                "time_granularity": "month",
+                "time_dimension": td0.name,
+                "time_granularity": td0.default_granularity,
                 "start_date": None,
                 "end_date": None,
                 "order_by": "time_asc",
                 "limit": 100,
             },
+        })
+
+    # Example 3: scalar (just a metric)
+    m_scalar = metrics[1] if len(metrics) > 1 else m0
+    examples.append({
+        "question": f"What is the {m_scalar.display_name}?",
+        "intent": {
+            "metric": m_scalar.name,
+            "dimensions": [],
+            "filters": [],
+            "time_dimension": None,
+            "time_granularity": None,
+            "start_date": None,
+            "end_date": None,
+            "order_by": "metric_desc",
+            "limit": 1,
         },
-        {
-            "question": "orders count by state",
-            "intent": {
-                "metric": "order_count",
-                "dimensions": ["customer_state"],
-                "filters": [],
-                "time_dimension": None,
-                "time_granularity": None,
-                "start_date": None,
-                "end_date": None,
-                "order_by": "metric_desc",
-                "limit": 100,
-            },
-        },
-    ]
+    })
+
+    return examples
+
+
+def _build_user_prompt(question: str, registry: SemanticRegistry, schema: SchemaContext) -> str:
+    examples = _build_dynamic_examples(registry)
     return (
         f"Semantic registry: {_build_prompt_context(registry, schema)}\n"
         f"Examples: {json.dumps(examples, separators=(',', ':'))}\n"

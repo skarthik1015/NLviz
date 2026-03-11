@@ -18,7 +18,7 @@ export type SemanticIntent = {
   metric: string;
   dimensions: string[];
   filters: FilterCondition[];
-  time_dimension: "order_date" | "delivery_date" | null;
+  time_dimension: string | null;
   time_granularity: "day" | "week" | "month" | "quarter" | "year" | null;
   start_date: string | null;
   end_date: string | null;

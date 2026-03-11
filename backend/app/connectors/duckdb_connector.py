@@ -11,10 +11,11 @@ from app.security import validate_sql_safety
 
 
 class DuckDBConnector(DataConnector):
-    def __init__(self, db_path: str | Path | None = None):
+    def __init__(self, db_path: str | Path | None = None, denied_columns: list[str] | None = None):
         default_db = Path(__file__).resolve().parents[2] / "data" / "ecommerce.duckdb"
         self.db_path = Path(db_path) if db_path else default_db
         self._identifier_pattern = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+        self._denied_columns: list[str] = denied_columns or []
         self._cached_allowed_tables: set[str] | None = None
         self._cached_table_columns: dict[str, set[str]] | None = None
 
@@ -38,6 +39,7 @@ class DuckDBConnector(DataConnector):
             allowed_tables=self._get_allowed_tables(),
             table_columns=self._get_all_table_columns(),
             max_limit=limit,
+            denied_columns=frozenset(self._denied_columns) if self._denied_columns else None,
         )
         with self._connect() as conn:
             return conn.execute(normalized).df()
@@ -56,6 +58,7 @@ class DuckDBConnector(DataConnector):
         tables = self._list_tables()
         table_metadata: dict[str, list[dict]] = {}
         row_counts: dict[str, int] = {}
+        distinct_counts: dict[str, dict[str, int]] = {}
 
         with self._connect() as conn:
             for table_name in tables:
@@ -66,11 +69,70 @@ class DuckDBConnector(DataConnector):
                 ).fetchone()
                 row_counts[table_name] = result[0] if result else 0
 
+                # Approximate NDV per column (fast, avoids full scans)
+                distinct_counts[table_name] = {}
+                for col_info in table_metadata[table_name]:
+                    col_name = col_info["name"]
+                    safe_col = self._quote_identifier(col_name)
+                    try:
+                        ndv_row = conn.execute(
+                            f"SELECT approx_count_distinct({safe_col}) FROM {safe_table}"
+                        ).fetchone()
+                        distinct_counts[table_name][col_name] = ndv_row[0] if ndv_row else 0
+                    except Exception:
+                        distinct_counts[table_name][col_name] = -1
+
+        table_set = set(tables)
+        inferred_joins, join_provenance = self._infer_joins(table_metadata, table_set)
+
         return SchemaContext(
             tables=table_metadata,
             row_counts=row_counts,
             join_paths=[],
+            distinct_counts=distinct_counts,
+            inferred_joins=inferred_joins,
+            join_provenance=join_provenance,
         )
+
+    @staticmethod
+    def _infer_joins(
+        table_metadata: dict[str, list[dict]],
+        table_set: set[str],
+    ) -> tuple[list[dict], dict[str, str]]:
+        """Heuristic FK inference: columns named *_id matching another table."""
+        inferred: list[dict] = []
+        provenance: dict[str, str] = {}
+        seen: set[tuple[str, str]] = set()
+
+        for table_name, columns in table_metadata.items():
+            for col in columns:
+                col_name: str = col["name"]
+                if not col_name.endswith("_id"):
+                    continue
+                # e.g. customer_id → customers
+                stem = col_name[: -len("_id")]
+                candidates = [stem, stem + "s", stem + "es"]
+                for candidate in candidates:
+                    if candidate in table_set and candidate != table_name:
+                        sorted_pair = sorted([table_name, candidate])
+                        pair = (sorted_pair[0], sorted_pair[1])
+                        if pair in seen:
+                            break
+                        seen.add(pair)
+                        join_key = f"{table_name}.{col_name}={candidate}.{col_name}"
+                        # Check if the target table actually has this column
+                        target_cols = {c["name"] for c in table_metadata.get(candidate, [])}
+                        if col_name in target_cols:
+                            inferred.append({
+                                "from": table_name,
+                                "to": candidate,
+                                "on": f"{table_name}.{col_name} = {candidate}.{col_name}",
+                                "type": "LEFT",
+                            })
+                            provenance[join_key] = "heuristic"
+                        break
+
+        return inferred, provenance
 
     def close(self) -> None:
         # Connector now uses short-lived connections; nothing persistent to close.

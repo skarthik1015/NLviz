@@ -81,4 +81,7 @@ websockets==16.0
 xxhash==3.6.0
 yarl==1.22.0
 zstandard==0.25.0
+psycopg2-binary==2.9.10
+cryptography==44.0.3
+python-multipart>=0.0.9
 

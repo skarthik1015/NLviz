@@ -1,28 +1,50 @@
 from contextlib import asynccontextmanager
+import importlib
 import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import build_api_router
-from app.dependencies import build_runtime_services
+from app.dependencies import build_all_services
 from app.rate_limit import RateLimitMiddleware
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    services = build_runtime_services()
+    _ensure_runtime_dependencies()
+    services = build_all_services()
+    # Core new services
+    app.state.connection_service = services["connection_service"]
+    app.state.connection_store = services["connection_store"]
+    app.state.secret_store = services["secret_store"]
+    app.state.job_manager = services["job_manager"]
+    app.state.audit_log = services["audit_log"]
+    app.state.feedback_store = services["feedback_store"]
+    app.state.intent_config = services["intent_config"]
+    # Backward compat: expose default runtime's services directly
     app.state.connector = services["connector"]
     app.state.schema_context = services["schema_context"]
     app.state.semantic_registry = services["semantic_registry"]
     app.state.query_graph = services["query_graph"]
     app.state.query_service = services["query_service"]
-    app.state.feedback_store = services["feedback_store"]
     try:
         yield
     finally:
+        if hasattr(app.state, "job_manager"):
+            app.state.job_manager.shutdown()
         if hasattr(app.state.connector, "close"):
             app.state.connector.close()
+
+
+def _ensure_runtime_dependencies() -> None:
+    try:
+        importlib.import_module("multipart")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            'Form uploads require "python-multipart" to be installed. '
+            "Run: pip install python-multipart"
+        ) from exc
 
 
 app = FastAPI(title="NL Query Tool API", version="0.1.0", lifespan=lifespan)

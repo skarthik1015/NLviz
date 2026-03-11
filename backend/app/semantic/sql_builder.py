@@ -193,7 +193,13 @@ def build_sql_from_intent(intent: SemanticIntent, registry: SemanticRegistry) ->
         where_parts.append(_build_filter_clause(filter_condition, filter_expr))
 
     if intent.start_date or intent.end_date:
-        time_dimension_name = intent.time_dimension or "order_date"
+        time_dimension_name = intent.time_dimension or (
+            registry.schema.time_dimensions[0].name
+            if registry.schema.time_dimensions
+            else None
+        )
+        if time_dimension_name is None:
+            raise ValueError("No time dimension available for date filter")
         time_dimension = registry.get_time_dimension(time_dimension_name)
         time_expr = _apply_aliases(time_dimension.sql_expression, aliases)
         if intent.start_date:

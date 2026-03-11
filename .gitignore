@@ -5,6 +5,8 @@ __pycache__/
 data/raw/
 data/*.duckdb
 .claude/
+Claude.md
+MVP_CODEBASE_WALKTHROUGH.md
 
 # ---- Python ----
 __pycache__/

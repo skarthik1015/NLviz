@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 
@@ -11,6 +11,9 @@ class SchemaContext:
     tables: dict[str, list[dict]]
     row_counts: dict[str, int]
     join_paths: list[dict]
+    distinct_counts: dict[str, dict[str, int]] = field(default_factory=dict)
+    inferred_joins: list[dict] = field(default_factory=list)
+    join_provenance: dict[str, str] = field(default_factory=dict)
 
 
 class DataConnector(ABC):

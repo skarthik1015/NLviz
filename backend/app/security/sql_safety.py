@@ -69,13 +69,15 @@ def _extract_selected_columns(statement: exp.Expression) -> list[str]:
     return sorted(selected_columns)
 
 
-def _extract_star_tables(statement: exp.Expression) -> tuple[bool, set[str]]:
+def _extract_star_tables(
+    statement: exp.Expression, dialect: str = "duckdb"
+) -> tuple[bool, set[str]]:
     has_unqualified_star = False
     qualified_star_tables: set[str] = set()
 
     for select in statement.find_all(exp.Select):
         for projection in select.expressions:
-            projection_sql = projection.sql(dialect="duckdb").strip()
+            projection_sql = projection.sql(dialect=dialect).strip()
             if projection_sql == "*":
                 has_unqualified_star = True
             elif projection_sql.endswith(".*"):
@@ -90,12 +92,14 @@ def validate_sql_safety(
     allowed_tables: set[str],
     table_columns: dict[str, set[str]] | None = None,
     max_limit: int = 5000,
+    denied_columns: frozenset[str] | None = None,
+    dialect: str = "duckdb",
 ) -> SQLSafetyResult:
     if not sql or not sql.strip():
         raise SQLSafetyError("SQL is empty")
 
     try:
-        parsed = sqlglot.parse(sql, read="duckdb")
+        parsed = sqlglot.parse(sql, read=dialect)
     except Exception as exc:
         raise SQLSafetyError(f"SQL parse failed: {exc}") from exc
 
@@ -117,19 +121,20 @@ def validate_sql_safety(
             f"Query references tables outside allowlist: {', '.join(disallowed)}"
         )
 
-    denied_columns = sorted(set(_extract_selected_columns(statement)) & DENIED_COLUMNS)
-    if denied_columns:
+    effective_denied = denied_columns if denied_columns is not None else frozenset(DENIED_COLUMNS)
+    matched_denied = sorted(set(_extract_selected_columns(statement)) & effective_denied)
+    if matched_denied:
         raise SQLSafetyError(
-            f"Query selects denied columns: {', '.join(denied_columns)}"
+            f"Query selects denied columns: {', '.join(matched_denied)}"
         )
 
     if table_columns:
-        has_unqualified_star, qualified_star_tables = _extract_star_tables(statement)
+        has_unqualified_star, qualified_star_tables = _extract_star_tables(statement, dialect=dialect)
         star_tables = tables if has_unqualified_star else sorted(qualified_star_tables)
         denied_via_star = sorted(
             table_name
             for table_name in star_tables
-            if DENIED_COLUMNS.intersection(table_columns.get(table_name, set()))
+            if effective_denied.intersection(table_columns.get(table_name, set()))
         )
         if denied_via_star:
             raise SQLSafetyError(

@@ -31,8 +31,17 @@ def _x_key(rows: list[dict[str, Any]]) -> str | None:
 
 
 def _to_json_safe(fig: go.Figure) -> dict[str, Any]:
-    """Serialize figure via JSON to guarantee all numpy/plotly types are plain Python."""
-    return json.loads(fig.to_json())
+    """Serialize figure via JSON to guarantee all numpy/plotly types are plain Python.
+
+    ``plotly``'s :meth:`go.Figure.to_json` is annotated to return an
+    ``Optional[str]`` which can confuse static type checkers.  In practice it
+    always returns a string, but to keep mypy happy we coalesce ``None`` to an
+    empty object before passing the result to ``json.loads``.
+    """
+    json_str = fig.to_json() or "{}"
+    # ``json.loads`` expects a ``str``; the ``or "{}"`` above ensures we never
+    # pass ``None``.
+    return json.loads(json_str)
 
 
 def _bar_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
