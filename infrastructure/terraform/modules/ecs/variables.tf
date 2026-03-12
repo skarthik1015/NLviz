@@ -73,9 +73,15 @@ variable "rds_secret_arn" {
   description = "Secrets Manager ARN for RDS credentials (injected as DATABASE_URL)"
 }
 
+variable "openai_secret_arn" {
+  type        = string
+  description = "Secrets Manager ARN for OpenAI API key"
+}
+
 variable "anthropic_secret_arn" {
   type        = string
   description = "Secrets Manager ARN for Anthropic API key"
+  default = null
 }
 
 variable "uploads_bucket_name" {

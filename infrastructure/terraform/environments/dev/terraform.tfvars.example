@@ -5,6 +5,6 @@ project     = "nl-query-tool"
 environment = "dev"
 aws_region  = "us-east-1"
 
-# GitHub OIDC trust — replace with your GitHub username/org and repo name
-github_org  = "YOUR_GITHUB_ORG"
-github_repo = "nl-query-tool"
+# GitHub OIDC trust
+github_org  = "skarthik1015"
+github_repo = "NLviz"

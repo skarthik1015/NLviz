@@ -21,3 +21,14 @@ resource "aws_secretsmanager_secret" "anthropic_api_key" {
     prevent_destroy = true
   }
 }
+
+resource "aws_secretsmanager_secret" "openai_api_key" {
+  name        = "${var.project}/openai/api-key"
+  description = "OpenAI API key for LLM intent mapping"
+
+  tags = merge(local.tags, { Purpose = "llm-api-key" })
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}

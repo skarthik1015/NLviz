@@ -23,6 +23,11 @@ variable "anthropic_secret_arn" {
   description = "ARN of the Secrets Manager secret containing the Anthropic API key"
 }
 
+variable "openai_secret_arn" {
+  type = string
+  description = "ARN of the Secrets Manager secret containing the OpenAI API key"
+}
+
 variable "uploads_bucket_arn" {
   type        = string
   description = "ARN of the S3 bucket for uploaded datasets"

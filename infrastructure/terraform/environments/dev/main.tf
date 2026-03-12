@@ -13,7 +13,7 @@ terraform {
 
   # Replace bucket/dynamodb_table/region with values output by bootstrap/main.tf
   backend "s3" {
-    bucket         = "nl-query-tool-terraform-state-REPLACE_ACCOUNT_ID"
+    bucket         = "nl-query-tool-terraform-state-941377155192"
     key            = "environments/dev/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "nl-query-tool-terraform-locks"
@@ -92,12 +92,13 @@ module "iam" {
   aws_region           = var.aws_region
   rds_secret_arn       = module.rds.db_secret_arn
   anthropic_secret_arn = module.secrets.anthropic_secret_arn
+  openai_secret_arn    = module.secrets.openai_secret_arn
   uploads_bucket_arn   = module.s3.uploads_bucket_arn
   schemas_bucket_arn   = module.s3.schemas_bucket_arn
   github_org           = var.github_org
   github_repo          = var.github_repo
-  ecr_backend_arn      = "${module.ecr.backend_repository_url}/*"
-  ecr_frontend_arn     = "${module.ecr.frontend_repository_url}/*"
+  ecr_backend_arn      = module.ecr.backend_repository_arn
+  ecr_frontend_arn     = module.ecr.frontend_repository_arn
 }
 
 module "ecs" {
@@ -122,8 +123,8 @@ module "ecs" {
   backend_log_group  = module.monitoring.backend_log_group_name
   frontend_log_group = module.monitoring.frontend_log_group_name
 
-  rds_secret_arn       = module.rds.db_secret_arn
-  anthropic_secret_arn = module.secrets.anthropic_secret_arn
+  rds_secret_arn    = module.rds.db_secret_arn
+  openai_secret_arn = module.secrets.openai_secret_arn
 
   uploads_bucket_name = module.s3.uploads_bucket_name
   schemas_bucket_name = module.s3.schemas_bucket_name

@@ -12,3 +12,13 @@ output "registry_id" {
   description = "ECR registry ID (AWS account ID)"
   value       = aws_ecr_repository.backend.registry_id
 }
+
+output "backend_repository_arn" {
+  description = "ARN of backend ECR repo"
+  value = aws_ecr_repository.backend.arn
+}
+
+output "frontend_repository_arn" {
+  description = "ARN of frontend ECR repo"
+  value = aws_ecr_repository.frontend.arn
+}

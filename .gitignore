@@ -49,3 +49,10 @@ data/
 uploads/
 results/
 artifacts/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json

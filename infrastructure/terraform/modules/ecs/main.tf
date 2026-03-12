@@ -63,20 +63,31 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "SCHEMA_BUCKET",        value = var.schemas_bucket_name },
       { name = "AWS_REGION",           value = var.aws_region },
       { name = "AUTO_MIGRATE",         value = "true" },
+      { name = "LLM_PROVIDER",         value = "openai" },
+      { name = "LLM_MODEL",            value = "gpt-4.1-mini" },
     ]
 
     # Secrets injected at container startup from Secrets Manager.
     # DATABASE_URL is the full connection_string from the RDS secret JSON.
-    secrets = [
-      {
-        name      = "ANTHROPIC_API_KEY"
-        valueFrom = "${var.anthropic_secret_arn}:api_key::"
-      },
-      {
-        name      = "DATABASE_URL"
-        valueFrom = "${var.rds_secret_arn}:connection_string::"
-      },
-    ]
+    secrets = concat(
+      [
+        {
+          name      = "OPENAI_API_KEY"
+          valueFrom = "${var.openai_secret_arn}:api_key::"
+        },
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${var.rds_secret_arn}:connection_string::"
+        }
+      ],
+      var.anthropic_secret_arn != null ? [
+        {
+          name      = "ANTHROPIC_API_KEY"
+          valueFrom = "${var.anthropic_secret_arn}:api_key::"
+        }
+      ] : []
+    )
+
 
     logConfiguration = {
       logDriver = "awslogs"

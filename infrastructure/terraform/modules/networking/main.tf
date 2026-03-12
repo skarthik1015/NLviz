@@ -134,7 +134,7 @@ resource "aws_security_group" "backend" {
   }
 
   egress {
-    description = "Allow all outbound (NAT → internet for Claude API / ECR pulls)"
+    description = "Allow all outbound (NAT to internet for Claude API / ECR pulls)"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
