@@ -99,24 +99,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       # ── Build + Push Backend ────────────────────────────────────────
-      - name: Set up Python for seed.py
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Cache pip (seed.py dependencies)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-seed-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-seed-
-
-      - name: Generate ecommerce.duckdb for Docker build context
-        working-directory: backend
-        run: |
-          pip install duckdb pandas -q
-          python seed.py
-
       - name: Build and push backend image
         env:
           ECR_BACKEND_URL: ${{ secrets.ECR_BACKEND_URL }}
