@@ -1,24 +1,94 @@
+"""Per-connection feedback storage.
+
+Two concrete implementations share a common ABC:
+
+- ``JsonlFeedbackStore``:   JSONL file on local disk.
+                            Used in development (no DATABASE_URL).
+- ``RDSFeedbackStore``:     PostgreSQL via DatabasePool.
+                            Used in production (DATABASE_URL set).
+
+Factory::
+
+    store = BaseFeedbackStore.create(config, pool=pool)
+"""
 from __future__ import annotations
 
 import json
+import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
+from typing import TYPE_CHECKING
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from app.config import AppConfig
+    from app.storage.db_pool import DatabasePool
 
 from app.models import FeedbackRecord
 
+logger = logging.getLogger(__name__)
+
 _JSONL_PATH = Path(__file__).resolve().parents[2] / "data" / "feedback.jsonl"
 
+
+# ── Abstract Base ──────────────────────────────────────────────────────
+
+class BaseFeedbackStore(ABC):
+    """Storage contract for query feedback."""
+
+    @abstractmethod
+    def upsert(
+        self,
+        *,
+        query_id: str,
+        rating: str,
+        comment: str | None,
+        idempotency_key: str | None,
+    ) -> tuple[str, FeedbackRecord]:
+        """Insert or update a feedback record.
+
+        Returns a ``(action, record)`` tuple where *action* is either
+        ``"created"`` or ``"updated"``.
+        """
+
+    # ── Factory ───────────────────────────────────────────────────────
+
+    @classmethod
+    def create(
+        cls,
+        config: "AppConfig",
+        pool: "DatabasePool | None" = None,
+    ) -> "BaseFeedbackStore":
+        """Return the appropriate implementation based on ``AppConfig``."""
+        if config.database_url and pool is not None:
+            logger.info("FeedbackStore: RDS (PostgreSQL)")
+            return RDSFeedbackStore(pool=pool)
+        logger.info("FeedbackStore: local JSONL file")
+        return JsonlFeedbackStore()
+
+
+# ── Backward-compat alias ──────────────────────────────────────────────
+FeedbackStore = None  # set at bottom
+
+
+# ── Local Implementation ───────────────────────────────────────────────
 
 @dataclass
 class _FeedbackInternal:
     record: FeedbackRecord
 
 
-class FeedbackStore:
-    def __init__(self):
+class JsonlFeedbackStore(BaseFeedbackStore):
+    """In-memory + JSONL-backed feedback store — one record per line.
+
+    Acceptable for local development. In production, swap for
+    ``RDSFeedbackStore``.
+    """
+
+    def __init__(self) -> None:
         self._records_by_idempotency_key: dict[str, _FeedbackInternal] = {}
         self._records: dict[str, _FeedbackInternal] = {}
         self._lock = Lock()
@@ -82,3 +152,67 @@ class FeedbackStore:
                 self._records_by_idempotency_key[idempotency_key] = internal
             self._append_to_jsonl(feedback)
             return "created", feedback
+
+
+# ── RDS Implementation ─────────────────────────────────────────────────
+
+class RDSFeedbackStore(BaseFeedbackStore):
+    """PostgreSQL-backed feedback store via ``DatabasePool``."""
+
+    def __init__(self, pool: "DatabasePool") -> None:
+        self._pool = pool
+
+    def upsert(
+        self,
+        *,
+        query_id: str,
+        rating: str,
+        comment: str | None,
+        idempotency_key: str | None,
+    ) -> tuple[str, FeedbackRecord]:
+        feedback_id = str(uuid4())
+        now = datetime.now(timezone.utc)
+
+        sql = """
+            INSERT INTO feedback (
+                feedback_id, query_id, rating, comment,
+                idempotency_key, created_at
+            )
+            VALUES (%(feedback_id)s, %(query_id)s, %(rating)s, %(comment)s,
+                    %(idempotency_key)s, %(created_at)s)
+            ON CONFLICT (idempotency_key)
+            DO UPDATE SET
+                rating     = EXCLUDED.rating,
+                comment    = EXCLUDED.comment
+            RETURNING feedback_id, query_id, rating, comment,
+                      idempotency_key, created_at,
+                      (xmax = 0) AS inserted
+        """
+        params = {
+            "feedback_id": feedback_id,
+            "query_id": query_id,
+            "rating": rating,
+            "comment": comment,
+            "idempotency_key": idempotency_key,
+            "created_at": now,
+        }
+
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                row = cur.fetchone()
+
+        record = FeedbackRecord(
+            feedback_id=row["feedback_id"],
+            query_id=row["query_id"],
+            rating=row["rating"],
+            comment=row["comment"],
+            idempotency_key=row["idempotency_key"],
+            created_at=row["created_at"],
+        )
+        action = "created" if row["inserted"] else "updated"
+        return action, record
+
+
+# Backward-compat alias
+FeedbackStore = JsonlFeedbackStore

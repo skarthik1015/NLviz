@@ -76,3 +76,10 @@ def load_semantic_registry(schema_path: str | Path) -> SemanticRegistry:
         raw = yaml.safe_load(fp)
     schema = SemanticSchema.model_validate(raw)
     return SemanticRegistry(schema)
+
+
+def load_semantic_registry_from_yaml(yaml_content: str) -> SemanticRegistry:
+    """Build a SemanticRegistry from an already-loaded YAML string."""
+    raw = yaml.safe_load(yaml_content)
+    schema = SemanticSchema.model_validate(raw)
+    return SemanticRegistry(schema)

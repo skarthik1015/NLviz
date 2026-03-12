@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException, Request
 
@@ -12,12 +12,18 @@ from app.connectors.base import DataConnector, SchemaContext
 from app.semantic import SemanticRegistry, load_semantic_registry
 from app.services.audit_log import AuditLog
 from app.services.connection_service import ConnectionResolutionError, ConnectionRuntime, ConnectionService
-from app.services.connection_store import ConnectionStore
-from app.services.feedback_store import FeedbackStore
+from app.services.connection_store import BaseConnectionStore
+from app.services.feedback_store import BaseFeedbackStore
 from app.services.generation_job_manager import GenerationJobManager
 from app.services.intent_mapper import IntentMapperConfig, IntentMapperRouter
 from app.services.query_service import QueryService
-from app.services.secret_store import SecretStore
+from app.services.secret_store import BaseSecretStore
+from app.storage.s3_storage import S3Storage
+
+if TYPE_CHECKING:
+    from app.config import AppConfig
+    from app.storage.db_pool import DatabasePool
+    from app.storage.schema_storage import BaseSchemaStorage
 
 _UUID4_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
@@ -52,24 +58,38 @@ def build_default_runtime(intent_config: IntentMapperConfig | None = None) -> Co
     )
 
 
-def build_all_services() -> dict[str, Any]:
-    """Build all services for app startup."""
+def build_all_services(
+    config: "AppConfig",
+    pool: "DatabasePool | None" = None,
+    schema_storage: "BaseSchemaStorage | None" = None,
+) -> dict[str, Any]:
+    """Build all services for app startup.
+
+    Uses factory classmethods on each store so the correct implementation
+    (local vs AWS) is chosen automatically from *config*.
+    """
     intent_config = IntentMapperConfig.from_env()
-    connection_store = ConnectionStore()
-    secret_store = SecretStore()
+
+    connection_store = BaseConnectionStore.create(config, pool=pool)
+    secret_store = BaseSecretStore.create(config)
+    feedback_store = BaseFeedbackStore.create(config, pool=pool)
+
     connection_service = ConnectionService(
         connection_store=connection_store,
         secret_store=secret_store,
         intent_config=intent_config,
+        schema_storage=schema_storage,
     )
 
     # Register default ecommerce runtime
     default_runtime = build_default_runtime(intent_config)
     connection_service.register_runtime("default", default_runtime)
 
-    job_manager = GenerationJobManager(connection_store=connection_store)
+    job_manager = GenerationJobManager(
+        connection_store=connection_store,
+        schema_storage=schema_storage,
+    )
     audit_log = AuditLog()
-    feedback_store = FeedbackStore()
 
     return {
         "connection_service": connection_service,
@@ -105,11 +125,11 @@ def get_connection_service(request: Request) -> ConnectionService:
     return request.app.state.connection_service
 
 
-def get_connection_store(request: Request) -> ConnectionStore:
+def get_connection_store(request: Request) -> BaseConnectionStore:
     return request.app.state.connection_store
 
 
-def get_secret_store(request: Request) -> SecretStore:
+def get_secret_store(request: Request) -> BaseSecretStore:
     return request.app.state.secret_store
 
 
@@ -119,6 +139,11 @@ def get_job_manager(request: Request) -> GenerationJobManager:
 
 def get_audit_log(request: Request) -> AuditLog:
     return request.app.state.audit_log
+
+
+def get_upload_storage(request: Request) -> S3Storage | None:
+    """Return the S3 upload storage, or None in local-dev mode."""
+    return getattr(request.app.state, "upload_storage", None)
 
 
 def _get_runtime(request: Request) -> ConnectionRuntime:
@@ -145,5 +170,5 @@ def get_query_service(request: Request) -> QueryService:
     return _get_runtime(request).query_service
 
 
-def get_feedback_store(request: Request) -> FeedbackStore:
+def get_feedback_store(request: Request) -> BaseFeedbackStore:
     return request.app.state.feedback_store

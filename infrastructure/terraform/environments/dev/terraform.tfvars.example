@@ -1,0 +1,10 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit it.
+
+project     = "nl-query-tool"
+environment = "dev"
+aws_region  = "us-east-1"
+
+# GitHub OIDC trust — replace with your GitHub username/org and repo name
+github_org  = "YOUR_GITHUB_ORG"
+github_repo = "nl-query-tool"

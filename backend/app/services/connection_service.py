@@ -20,14 +20,14 @@ class ConnectionResolutionError(Exception):
 from app.connectors import CONNECTOR_REGISTRY, DuckDBConnector
 from app.connectors.base import DataConnector, SchemaContext
 from app.models.connection import ConnectionProfile
-from app.semantic import SemanticRegistry, load_semantic_registry
+from app.semantic import SemanticRegistry, load_semantic_registry, load_semantic_registry_from_yaml
 from app.services.connection_store import ConnectionStore
 from app.services.intent_mapper import IntentMapperConfig, IntentMapperRouter
 from app.services.query_service import QueryService
 from app.services.secret_store import SecretStore
 
 if TYPE_CHECKING:
-    pass
+    from app.storage.schema_storage import BaseSchemaStorage
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +51,12 @@ class ConnectionService:
         connection_store: ConnectionStore,
         secret_store: SecretStore,
         intent_config: IntentMapperConfig | None = None,
+        schema_storage: "BaseSchemaStorage | None" = None,
     ):
         self._store = connection_store
         self._secrets = secret_store
         self._intent_config = intent_config or IntentMapperConfig.from_env()
+        self._schema_storage = schema_storage
         self._runtimes: dict[str, ConnectionRuntime] = {}
         self._lock = Lock()
 
@@ -101,8 +103,7 @@ class ConnectionService:
             raise ValueError(f"Connection '{connection_id}' not found")
 
         connector = self._build_connector(profile)
-        schema_path = Path(version.schema_path)
-        runtime = self._build_runtime(connector, schema_path)
+        runtime = self._build_runtime(connector, version.schema_path)
 
         with self._lock:
             old = self._runtimes.get(connection_id)
@@ -139,7 +140,7 @@ class ConnectionService:
             )
 
         connector = self._build_connector(profile)
-        return self._build_runtime(connector, Path(version.schema_path))
+        return self._build_runtime(connector, version.schema_path)
 
     def _build_connector(self, profile: ConnectionProfile) -> DataConnector:
         """Instantiate a connector from a profile's stored credentials."""
@@ -151,18 +152,26 @@ class ConnectionService:
 
         if profile.connector_type == "duckdb":
             params = self._secrets.get_by_connection_id(profile.connection_id)
-            return DuckDBConnector(db_path=params.get("db_path"), denied_columns=denied)
+            return DuckDBConnector(
+                db_path=params.get("db_path"),
+                table_name=params.get("table_name"),
+                denied_columns=denied,
+            )
 
         # Postgres and others
         params = self._secrets.get_by_connection_id(profile.connection_id)
         return connector_cls(connection_params=params, denied_columns=denied)
 
     def _build_runtime(
-        self, connector: DataConnector, schema_path: Path
+        self, connector: DataConnector, schema_path: str
     ) -> ConnectionRuntime:
         """Build a full runtime stack from connector + schema path."""
         schema_context = connector.get_schema()
-        registry = load_semantic_registry(schema_path)
+        if self._schema_storage is not None:
+            yaml_content = self._schema_storage.load(schema_path)
+            registry = load_semantic_registry_from_yaml(yaml_content)
+        else:
+            registry = load_semantic_registry(schema_path)
         intent_mapper = IntentMapperRouter(config=self._intent_config)
         query_graph = QueryGraphRunner(
             QueryGraphDependencies(

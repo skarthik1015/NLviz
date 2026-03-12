@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
+import os
 import re
+from pathlib import Path, PurePosixPath
+from urllib.parse import urlparse
 
 import duckdb
 import pandas as pd
@@ -10,14 +12,45 @@ from .base import DataConnector, SchemaContext
 from app.security import validate_sql_safety
 
 
+def _sanitize_name(raw: str) -> str:
+    """Produce a safe SQL identifier from a raw string (mirrors upload logic)."""
+    safe = re.sub(r"[^A-Za-z0-9_]", "_", raw)
+    safe = re.sub(r"_+", "_", safe).strip("_") or "uploaded_table"
+    if safe[0].isdigit():
+        safe = f"t_{safe}"
+    return safe[:63]
+
+
 class DuckDBConnector(DataConnector):
-    def __init__(self, db_path: str | Path | None = None, denied_columns: list[str] | None = None):
-        default_db = Path(__file__).resolve().parents[2] / "data" / "ecommerce.duckdb"
-        self.db_path = Path(db_path) if db_path else default_db
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        denied_columns: list[str] | None = None,
+        table_name: str | None = None,
+        aws_region: str | None = None,
+    ):
+        self._aws_region = aws_region or os.getenv("AWS_REGION", "us-east-1")
+
+        db_path_str = str(db_path) if db_path else None
+        if db_path_str and db_path_str.startswith("s3://"):
+            self.db_path: str | Path = db_path_str
+            parsed_path = PurePosixPath(urlparse(db_path_str).path)
+            self._s3_suffix = parsed_path.suffix.lower()
+            self._table_name: str = table_name or _sanitize_name(parsed_path.stem)
+        else:
+            default_db = Path(__file__).resolve().parents[2] / "data" / "ecommerce.duckdb"
+            self.db_path = Path(db_path_str) if db_path_str else default_db
+            self._s3_suffix = None
+            self._table_name = table_name or ""
+
         self._identifier_pattern = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
         self._denied_columns: list[str] = denied_columns or []
         self._cached_allowed_tables: set[str] | None = None
         self._cached_table_columns: dict[str, set[str]] | None = None
+
+    @property
+    def _is_s3(self) -> bool:
+        return isinstance(self.db_path, str) and self.db_path.startswith("s3://")
 
     def get_connector_type(self) -> str:
         return "duckdb"
@@ -135,10 +168,25 @@ class DuckDBConnector(DataConnector):
         return inferred, provenance
 
     def close(self) -> None:
-        # Connector now uses short-lived connections; nothing persistent to close.
+        # Connector uses short-lived connections; nothing persistent to close.
         return None
 
     def _connect(self):
+        if self._is_s3:
+            conn = duckdb.connect(":memory:")
+            conn.execute("INSTALL httpfs; LOAD httpfs;")
+            conn.execute(f"SET s3_region='{self._aws_region}';")
+            # Credentials resolved automatically via ECS task role (instance metadata)
+            quoted = self._quote_identifier(self._table_name)
+            if self._s3_suffix == ".csv":
+                conn.execute(
+                    f"CREATE VIEW {quoted} AS SELECT * FROM read_csv_auto('{self.db_path}')"
+                )
+            else:
+                conn.execute(
+                    f"CREATE VIEW {quoted} AS SELECT * FROM read_parquet('{self.db_path}')"
+                )
+            return conn
         return duckdb.connect(str(self.db_path), read_only=True)
 
     def _list_tables(self) -> list[str]:

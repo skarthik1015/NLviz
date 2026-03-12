@@ -1,0 +1,205 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+permissions:
+  id-token: write   # Required for OIDC token request
+  contents: read
+
+jobs:
+  # ── Test ────────────────────────────────────────────────────────────
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run full test suite
+        run: pytest --tb=short -q
+
+      - name: Run golden accuracy gate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python tests/golden_tests.py
+
+  frontend-checks:
+    name: Frontend Type Check + Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
+        run: npm run build
+
+  # ── Deploy (main branch only) ────────────────────────────────────────
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-checks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── AWS Auth via OIDC (no long-lived keys) ──────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: github-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── Build + Push Backend ────────────────────────────────────────
+      - name: Set up Python for seed.py
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip (seed.py dependencies)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-seed-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-seed-
+
+      - name: Generate ecommerce.duckdb for Docker build context
+        working-directory: backend
+        run: |
+          pip install duckdb pandas -q
+          python seed.py
+
+      - name: Build and push backend image
+        env:
+          ECR_BACKEND_URL: ${{ secrets.ECR_BACKEND_URL }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t "$ECR_BACKEND_URL:$IMAGE_TAG" \
+            -t "$ECR_BACKEND_URL:latest" \
+            ./backend
+          docker push "$ECR_BACKEND_URL:$IMAGE_TAG"
+          docker push "$ECR_BACKEND_URL:latest"
+
+      # ── Build + Push Frontend ────────────────────────────────────────
+      - name: Build and push frontend image
+        env:
+          ECR_FRONTEND_URL: ${{ secrets.ECR_FRONTEND_URL }}
+          IMAGE_TAG: ${{ github.sha }}
+          # API base URL is baked into the Next.js bundle at build time
+          NEXT_PUBLIC_API_BASE_URL: "http://${{ secrets.ALB_DNS_NAME }}/api"
+        run: |
+          docker build \
+            --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL" \
+            -t "$ECR_FRONTEND_URL:$IMAGE_TAG" \
+            -t "$ECR_FRONTEND_URL:latest" \
+            ./frontend
+          docker push "$ECR_FRONTEND_URL:$IMAGE_TAG"
+          docker push "$ECR_FRONTEND_URL:latest"
+
+      # ── Deploy Backend ───────────────────────────────────────────────
+      - name: Update backend ECS service
+        env:
+          CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ secrets.ECS_BACKEND_SERVICE }}
+        run: |
+          aws ecs update-service \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --force-new-deployment \
+            --query 'service.serviceName' \
+            --output text
+
+      - name: Wait for backend to stabilise
+        env:
+          CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ secrets.ECS_BACKEND_SERVICE }}
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE"
+
+      # ── Deploy Frontend ──────────────────────────────────────────────
+      - name: Update frontend ECS service
+        env:
+          CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ secrets.ECS_FRONTEND_SERVICE }}
+        run: |
+          aws ecs update-service \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --force-new-deployment \
+            --query 'service.serviceName' \
+            --output text
+
+      - name: Wait for frontend to stabilise
+        env:
+          CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ secrets.ECS_FRONTEND_SERVICE }}
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE"
+
+      # ── Smoke Test ───────────────────────────────────────────────────
+      - name: Smoke test — health endpoint
+        run: |
+          echo "Testing http://${{ secrets.ALB_DNS_NAME }}/healthz"
+          for i in 1 2 3; do
+            if curl -sf "http://${{ secrets.ALB_DNS_NAME }}/healthz"; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "Health check failed after 3 attempts"
+          exit 1

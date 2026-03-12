@@ -84,4 +84,5 @@ zstandard==0.25.0
 psycopg2-binary==2.9.10
 cryptography==44.0.3
 python-multipart>=0.0.9
+boto3>=1.34.0
 

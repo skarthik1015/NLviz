@@ -11,8 +11,10 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
+import asyncio
+
 import duckdb
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 
 from app.connectors import DuckDBConnector
 from app.connectors.postgres_connector import PostgresConnector
@@ -22,6 +24,7 @@ from app.dependencies import (
     get_connection_store,
     get_job_manager,
     get_secret_store,
+    get_upload_storage,
 )
 from app.models.connection import (
     ConnectionCreateRequest,
@@ -39,6 +42,7 @@ from app.services.connection_service import ConnectionService
 from app.services.connection_store import ConnectionStore
 from app.services.generation_job_manager import GenerationJobManager
 from app.services.secret_store import SecretStore
+from app.storage.s3_storage import S3Storage
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -123,6 +127,7 @@ async def upload_file(
     store: ConnectionStore = Depends(get_connection_store),
     secrets: SecretStore = Depends(get_secret_store),
     audit: AuditLog = Depends(get_audit_log),
+    s3: S3Storage | None = Depends(get_upload_storage),
 ) -> ConnectionCreateResponse:
     if file.filename is None:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -133,13 +138,10 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="Only CSV and Parquet files are supported")
 
     table_name = _sanitize_table_name(Path(file.filename).stem)
-
     connection_id = str(uuid4())
-    _UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-    db_path = _UPLOADS_DIR / f"{connection_id}.duckdb"
 
-    tmp_path: str | None = None
     max_bytes = _MAX_UPLOAD_MB * 1024 * 1024
+    tmp_path: str | None = None
     try:
         tmp_path, bytes_written = await _stream_upload_to_temp(
             upload=file,
@@ -149,27 +151,39 @@ async def upload_file(
         if bytes_written == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-        conn = duckdb.connect(str(db_path))
-        try:
-            if suffix == ".csv":
-                conn.execute(
-                    f"CREATE TABLE {_quote_identifier(table_name)} AS SELECT * FROM read_csv_auto(?)",
-                    [tmp_path],
-                )
-            else:
-                conn.execute(
-                    f"CREATE TABLE {_quote_identifier(table_name)} AS SELECT * FROM read_parquet(?)",
-                    [tmp_path],
-                )
-        finally:
-            conn.close()
+        if s3 is not None:
+            # ── S3 path: upload raw file; DuckDB reads via httpfs ───────
+            s3_key = f"uploads/{connection_id}/{file.filename}"
+            with open(tmp_path, "rb") as fobj:
+                db_path_str = await asyncio.to_thread(s3.upload_fileobj, s3_key, fobj)
+        else:
+            # ── Local path: import into a local .duckdb file ────────────
+            _UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+            local_db = _UPLOADS_DIR / f"{connection_id}.duckdb"
+            conn = duckdb.connect(str(local_db))
+            try:
+                if suffix == ".csv":
+                    conn.execute(
+                        f"CREATE TABLE {_quote_identifier(table_name)} AS SELECT * FROM read_csv_auto(?)",
+                        [tmp_path],
+                    )
+                else:
+                    conn.execute(
+                        f"CREATE TABLE {_quote_identifier(table_name)} AS SELECT * FROM read_parquet(?)",
+                        [tmp_path],
+                    )
+            finally:
+                conn.close()
+            db_path_str = str(local_db)
     finally:
         await file.close()
         if tmp_path and Path(tmp_path).exists():
             os.unlink(tmp_path)
 
-    # Store connection params
-    params = {"db_path": str(db_path)}
+    # Store connection params (table_name needed for S3 httpfs VIEW creation)
+    params: dict = {"db_path": db_path_str}
+    if s3 is not None:
+        params["table_name"] = table_name
     secrets.put(connection_id, params)
 
     profile = ConnectionProfile(
@@ -306,7 +320,10 @@ async def delete_connection(
 
 def _build_connector(connector_type: str, params: dict):
     if connector_type == "duckdb":
-        return DuckDBConnector(db_path=params.get("db_path"))
+        return DuckDBConnector(
+            db_path=params.get("db_path"),
+            table_name=params.get("table_name"),
+        )
     if connector_type == "postgres":
         return PostgresConnector(connection_params=params)
     raise HTTPException(status_code=400, detail=f"Unsupported connector type: {connector_type}")

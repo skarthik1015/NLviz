@@ -1,13 +1,14 @@
 """LLM-powered semantic schema generation from physical DB introspection."""
 from __future__ import annotations
 
+import io
 import json
 import logging
 import time
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import yaml
-from pathlib import Path
 from pydantic import ValidationError
 
 from app.connectors.base import DataConnector, SchemaContext
@@ -18,6 +19,9 @@ from app.services.intent_mapper import (
     _build_completion_client,
     _strip_json_fences,
 )
+
+if TYPE_CHECKING:
+    from app.storage.schema_storage import BaseSchemaStorage
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +55,8 @@ def generate_semantic_schema(
     connection_id: str,
     version_id: str,
     config: IntentMapperConfig | None = None,
-) -> tuple[SemanticSchema, Path, ValidationSummary, GenerationMetadata]:
+    schema_storage: "BaseSchemaStorage | None" = None,
+) -> tuple[SemanticSchema, str, ValidationSummary, GenerationMetadata]:
     """Generate a semantic schema from a database connector.
 
     Returns (schema, yaml_path, validation_summary, generation_metadata).
@@ -91,7 +96,7 @@ def generate_semantic_schema(
         confidence_score=validation.confidence_score,
     )
 
-    yaml_path = _persist_schema(cleaned, connection_id, version_id)
+    yaml_path = _persist_schema(cleaned, connection_id, version_id, schema_storage)
 
     metadata = GenerationMetadata(
         llm_provider=config.provider or "unknown",
@@ -272,15 +277,25 @@ def _persist_schema(
     schema: SemanticSchema,
     connection_id: str,
     version_id: str,
-) -> Path:
-    """Save the schema as a YAML file."""
+    schema_storage: "BaseSchemaStorage | None" = None,
+) -> str:
+    """Serialise the schema to YAML and persist it.
+
+    When *schema_storage* is provided the YAML is written via the storage
+    abstraction (local filesystem or S3).  The returned value is the path
+    string that can later be passed back to ``schema_storage.load()``.
+    """
+    schema_dict = schema.model_dump(by_alias=True)
+    yaml_content = yaml.dump(
+        schema_dict, default_flow_style=False, sort_keys=False, allow_unicode=True
+    )
+
+    if schema_storage is not None:
+        return schema_storage.save(connection_id, version_id, yaml_content)
+
+    # Local fallback — write to data/schemas/{connection_id}/{version_id}.yaml
     out_dir = _SCHEMAS_DIR / connection_id
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{version_id}.yaml"
-
-    # Convert to dict, using aliases for SemanticJoin fields
-    schema_dict = schema.model_dump(by_alias=True)
-    with out_path.open("w", encoding="utf-8") as fp:
-        yaml.dump(schema_dict, fp, default_flow_style=False, sort_keys=False, allow_unicode=True)
-
-    return out_path
+    out_path.write_text(yaml_content, encoding="utf-8")
+    return str(out_path)

@@ -5,6 +5,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from threading import Lock
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from app.connectors.base import DataConnector
@@ -12,6 +13,9 @@ from app.models.connection import GenerationJob, SemanticSchemaVersion
 from app.services.connection_store import ConnectionStore
 from app.services.schema_generator import generate_semantic_schema
 from app.services.intent_mapper import IntentMapperConfig
+
+if TYPE_CHECKING:
+    from app.storage.schema_storage import BaseSchemaStorage
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +26,11 @@ class GenerationJobManager:
     def __init__(
         self,
         connection_store: ConnectionStore,
+        schema_storage: "BaseSchemaStorage | None" = None,
         max_workers: int = _MAX_CONCURRENT_JOBS,
     ):
         self._store = connection_store
+        self._schema_storage = schema_storage
         self._jobs: dict[str, GenerationJob] = {}
         self._lock = Lock()
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="schema-gen")
@@ -48,7 +54,9 @@ class GenerationJobManager:
         with self._lock:
             self._jobs[job_id] = job
 
-        self._executor.submit(self._run_job, job_id, connection_id, version_id, connector, config)
+        self._executor.submit(
+            self._run_job, job_id, connection_id, version_id, connector, config
+        )
         return job
 
     def get_job(self, job_id: str) -> GenerationJob | None:
@@ -70,6 +78,7 @@ class GenerationJobManager:
                 connection_id=connection_id,
                 version_id=version_id,
                 config=config,
+                schema_storage=self._schema_storage,
             )
 
             # Confidence gating
