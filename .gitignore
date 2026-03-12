@@ -2,8 +2,8 @@
 .env
 __pycache__/
 *.pyc
-data/raw/
-data/*.duckdb
+backend/data/raw/
+backend/data/uploads/
 .claude/
 Claude.md
 MVP_CODEBASE_WALKTHROUGH.md
@@ -43,9 +43,7 @@ Thumbs.db
 .idea/
 
 # ---- Data / Artifacts ----
-*.duckdb
 *.db
-data/
 uploads/
 results/
 artifacts/
