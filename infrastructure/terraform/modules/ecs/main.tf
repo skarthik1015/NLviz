@@ -194,7 +194,7 @@ resource "aws_ecs_service" "backend" {
 
   # Ignore task definition changes — CI/CD updates them directly via aws ecs update-service
   lifecycle {
-    ignore_changes = [task_definition, desired_count]
+    ignore_changes = [desired_count]
   }
 
   depends_on = [var.backend_target_group_arn]
@@ -229,7 +229,7 @@ resource "aws_ecs_service" "frontend" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition, desired_count]
+    ignore_changes = [desired_count]
   }
 
   depends_on = [var.frontend_target_group_arn]
