@@ -533,7 +533,16 @@ def _build_system_prompt() -> str:
         "You map business questions to a SemanticIntent JSON object. "
         "Output JSON only. Do not include markdown fences or explanations. "
         "Choose only metrics, dimensions, time dimensions, and order_by values that exist in the provided registry. "
-        "Use ISO-8601 date strings for start_date and end_date when present."
+        "Use ISO-8601 date strings for start_date and end_date when present.\n\n"
+        "CRITICAL RULES for time_dimension vs date filters:\n"
+        "- time_dimension means GROUP BY a time period — it creates a time-series trend chart. "
+        "Only set time_dimension when the user explicitly asks for a temporal trend: "
+        "'over time', 'monthly trend', 'by month', 'weekly', 'daily', 'quarterly', 'by year'.\n"
+        "- Date ranges like 'from 2010 to 2012', 'in 2018', 'last year', 'between X and Y' are "
+        "time FILTERS — use start_date and end_date, NOT time_dimension.\n"
+        "- If the question asks for a breakdown 'by category/state/type' WITH a date range, "
+        "set dimensions + start_date/end_date. Do NOT set time_dimension.\n"
+        "- Only set time_dimension when the user wants to see HOW a metric changes over time periods."
     )
 
 
@@ -601,6 +610,40 @@ def _build_dynamic_examples(registry: SemanticRegistry) -> list[dict]:
             "limit": 1,
         },
     })
+
+    # Example 4: categorical breakdown with date filter (NOT time_dimension)
+    if d0:
+        examples.append({
+            "question": f"{m0.display_name} by {d0.display_name} in 2018",
+            "intent": {
+                "metric": m0.name,
+                "dimensions": [d0.name],
+                "filters": [],
+                "time_dimension": None,
+                "time_granularity": None,
+                "start_date": "2018-01-01",
+                "end_date": "2018-12-31",
+                "order_by": "metric_desc",
+                "limit": 100,
+            },
+        })
+
+    # Example 5: time-series trend broken down by dimension
+    if td0 and d0:
+        examples.append({
+            "question": f"Monthly {m0.display_name} by {d0.display_name} over time",
+            "intent": {
+                "metric": m0.name,
+                "dimensions": [d0.name],
+                "filters": [],
+                "time_dimension": td0.name,
+                "time_granularity": "month",
+                "start_date": None,
+                "end_date": None,
+                "order_by": "time_asc",
+                "limit": 100,
+            },
+        })
 
     return examples
 

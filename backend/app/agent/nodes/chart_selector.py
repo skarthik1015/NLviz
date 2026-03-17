@@ -34,8 +34,11 @@ def build_chart_selector_node() -> Callable[[AgentState], AgentState]:
 
 def _build_title(intent) -> str:
     parts = [intent.metric.replace("_", " ").title()]
-    if intent.dimensions:
+    if intent.time_dimension and intent.dimensions:
         parts.append("by " + ", ".join(d.replace("_", " ") for d in intent.dimensions))
-    if intent.time_dimension:
         parts.append("over time")
+    elif intent.time_dimension:
+        parts.append("over time")
+    elif intent.dimensions:
+        parts.append("by " + ", ".join(d.replace("_", " ") for d in intent.dimensions))
     return " ".join(parts)

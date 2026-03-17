@@ -10,6 +10,12 @@ from app.models.semantic_intent import SemanticIntent
 _BRAND_BAR = "#b5532e"
 _BRAND_LINE = "#1f6d57"
 
+# Palette for multi-series charts (up to 10 distinct lines)
+_MULTI_COLORS = [
+    "#1f6d57", "#b5532e", "#4e79a7", "#f28e2b", "#76b7b2",
+    "#e15759", "#59a14f", "#edc948", "#b07aa1", "#9c755f",
+]
+
 _BASE_LAYOUT: dict[str, Any] = {
     "paper_bgcolor": "rgba(0,0,0,0)",
     "plot_bgcolor": "rgba(0,0,0,0)",
@@ -66,6 +72,41 @@ def _line_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
     return _to_json_safe(fig)
 
 
+def _multi_line_chart(
+    rows: list[dict[str, Any]], title: str, intent: SemanticIntent
+) -> dict[str, Any]:
+    """Multi-series line chart: time on X-axis, one line per dimension value."""
+    time_col = intent.time_dimension
+    dim_cols = intent.dimensions
+
+    # Group rows by dimension values → one series per unique combination
+    series: dict[str, dict[str, list]] = {}
+    for row in rows:
+        dim_label = " / ".join(str(row.get(d, "")) for d in dim_cols) if dim_cols else "all"
+        if dim_label not in series:
+            series[dim_label] = {"x": [], "y": []}
+        series[dim_label]["x"].append(str(row.get(time_col or "", "")))
+        series[dim_label]["y"].append(row.get("metric_value", 0))
+
+    fig = go.Figure()
+    for i, (label, data) in enumerate(series.items()):
+        fig.add_trace(go.Scatter(
+            x=data["x"],
+            y=data["y"],
+            mode="lines+markers",
+            name=label,
+            line={"color": _MULTI_COLORS[i % len(_MULTI_COLORS)], "width": 2},
+        ))
+    fig.update_layout(
+        **_BASE_LAYOUT,
+        title={"text": title},
+        xaxis={"title": time_col or ""},
+        yaxis={"title": "Value"},
+        legend={"orientation": "h", "yanchor": "bottom", "y": -0.3},
+    )
+    return _to_json_safe(fig)
+
+
 def _stat_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
     value = rows[0].get("metric_value", 0) if rows else 0
     fig = go.Figure(
@@ -81,6 +122,8 @@ def build_chart_spec(
     intent: SemanticIntent,
     title: str,
 ) -> dict[str, Any]:
+    if chart_type == "multi_line":
+        return _multi_line_chart(rows, title, intent)
     if chart_type == "line":
         return _line_chart(rows, title)
     if chart_type == "bar":
