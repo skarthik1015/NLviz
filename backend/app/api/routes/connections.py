@@ -26,6 +26,7 @@ from app.dependencies import (
     get_secret_store,
     get_upload_storage,
 )
+from app.security.auth import AuthUser, get_current_user
 from app.models.connection import (
     ConnectionCreateRequest,
     ConnectionCreateResponse,
@@ -51,12 +52,25 @@ _MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "100"))
 _UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MB
 
 
+# ── GET /connections ─────────────────────────────────────────────────
+
+
+@router.get("")
+async def list_connections(
+    user: AuthUser = Depends(get_current_user),
+    store: ConnectionStore = Depends(get_connection_store),
+) -> list[dict]:
+    profiles = store.list_connections(owner_id=user.user_id)
+    return [p.model_dump(exclude={"denied_columns"}) for p in profiles]
+
+
 # ── POST /connections/test ───────────────────────────────────────────
 
 
 @router.post("/test", response_model=ConnectionTestResponse)
 async def test_connection(
     request: ConnectionTestRequest,
+    user: AuthUser = Depends(get_current_user),
     audit: AuditLog = Depends(get_audit_log),
 ) -> ConnectionTestResponse:
     audit.log("connection.test", metadata={"connector_type": request.connector_type})
@@ -96,6 +110,7 @@ async def test_connection(
 @router.post("", response_model=ConnectionCreateResponse)
 async def create_connection(
     request: ConnectionCreateRequest,
+    user: AuthUser = Depends(get_current_user),
     store: ConnectionStore = Depends(get_connection_store),
     secrets: SecretStore = Depends(get_secret_store),
     audit: AuditLog = Depends(get_audit_log),
@@ -110,6 +125,7 @@ async def create_connection(
         display_name=request.display_name,
         connector_type=request.connector_type,
         created_at=datetime.now(timezone.utc),
+        owner_id=user.user_id,
     )
     store.create_connection(profile)
     audit.log("connection.create", connection_id=connection_id)
@@ -124,6 +140,7 @@ async def create_connection(
 async def upload_file(
     file: UploadFile = File(...),
     display_name: str = Form(...),
+    user: AuthUser = Depends(get_current_user),
     store: ConnectionStore = Depends(get_connection_store),
     secrets: SecretStore = Depends(get_secret_store),
     audit: AuditLog = Depends(get_audit_log),
@@ -191,6 +208,7 @@ async def upload_file(
         display_name=display_name,
         connector_type="duckdb",
         created_at=datetime.now(timezone.utc),
+        owner_id=user.user_id,
     )
     store.create_connection(profile)
     audit.log("connection.create", connection_id=connection_id, metadata={"source": "upload"})
@@ -204,6 +222,7 @@ async def upload_file(
 @router.post("/{connection_id}/generate", response_model=GenerateResponse)
 async def generate_schema(
     connection_id: str,
+    user: AuthUser = Depends(get_current_user),
     store: ConnectionStore = Depends(get_connection_store),
     secrets: SecretStore = Depends(get_secret_store),
     job_mgr: GenerationJobManager = Depends(get_job_manager),
@@ -212,6 +231,7 @@ async def generate_schema(
     profile = store.get_connection(connection_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="Connection not found")
+    _verify_owner(profile, user)
     if profile.status != "active":
         raise HTTPException(status_code=400, detail="Connection is archived")
 
@@ -234,6 +254,7 @@ async def generate_schema(
 async def get_job_status(
     connection_id: str,
     job_id: str,
+    user: AuthUser = Depends(get_current_user),
     job_mgr: GenerationJobManager = Depends(get_job_manager),
 ) -> JobStatusResponse:
     job = job_mgr.get_job(job_id)
@@ -256,10 +277,16 @@ async def get_job_status(
 async def publish_schema(
     connection_id: str,
     request: PublishRequest,
+    user: AuthUser = Depends(get_current_user),
     conn_service: ConnectionService = Depends(get_connection_service),
     store: ConnectionStore = Depends(get_connection_store),
     audit: AuditLog = Depends(get_audit_log),
 ) -> PublishResponse:
+    profile = store.get_connection(connection_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    _verify_owner(profile, user)
+
     version = store.get_version(request.version_id)
     if version is None:
         raise HTTPException(status_code=404, detail="Schema version not found")
@@ -294,6 +321,7 @@ async def publish_schema(
 @router.delete("/{connection_id}")
 async def delete_connection(
     connection_id: str,
+    user: AuthUser = Depends(get_current_user),
     store: ConnectionStore = Depends(get_connection_store),
     secrets: SecretStore = Depends(get_secret_store),
     conn_service: ConnectionService = Depends(get_connection_service),
@@ -305,6 +333,7 @@ async def delete_connection(
     profile = store.get_connection(connection_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="Connection not found")
+    _verify_owner(profile, user)
 
     store.archive_connection(connection_id)
     store.archive_versions_for_connection(connection_id)
@@ -313,6 +342,15 @@ async def delete_connection(
 
     audit.log("connection.delete", connection_id=connection_id)
     return {"status": "archived", "connection_id": connection_id}
+
+
+# ── Auth helpers ─────────────────────────────────────────────────
+
+
+def _verify_owner(profile: ConnectionProfile, user: AuthUser) -> None:
+    """Raise 403 if the connection belongs to a different user."""
+    if profile.owner_id is not None and profile.owner_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -326,6 +364,9 @@ def _build_connector(connector_type: str, params: dict):
         )
     if connector_type == "postgres":
         return PostgresConnector(connection_params=params)
+    if connector_type == "athena":
+        from app.connectors.athena_connector import AthenaConnector
+        return AthenaConnector(connection_params=params)
     raise HTTPException(status_code=400, detail=f"Unsupported connector type: {connector_type}")
 
 

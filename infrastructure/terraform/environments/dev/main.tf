@@ -68,6 +68,27 @@ module "rds" {
   rds_sg_id          = module.networking.rds_sg_id
 }
 
+# ── DNS + TLS ─────────────────────────────────────────────────────────
+
+module "dns" {
+  source       = "../../modules/dns"
+  project      = var.project
+  environment  = var.environment
+  domain_name  = var.domain_name
+  alb_dns_name = module.alb.alb_dns_name
+  alb_zone_id  = module.alb.alb_zone_id
+}
+
+# ── Cognito ───────────────────────────────────────────────────────────
+
+module "cognito" {
+  source                = "../../modules/cognito"
+  project               = var.project
+  environment           = var.environment
+  domain_name           = var.domain_name
+  cognito_domain_prefix = var.cognito_domain_prefix
+}
+
 # ALB is created before S3 (S3 CORS needs ALB DNS) and before ECS (ECS needs TG ARNs)
 module "alb" {
   source            = "../../modules/alb"
@@ -76,6 +97,11 @@ module "alb" {
   vpc_id            = module.networking.vpc_id
   public_subnet_ids = module.networking.public_subnet_ids
   alb_sg_id         = module.networking.alb_sg_id
+
+  certificate_arn             = module.dns.certificate_arn
+  cognito_user_pool_arn       = module.cognito.user_pool_arn
+  cognito_user_pool_client_id = module.cognito.user_pool_client_id
+  cognito_user_pool_domain    = module.cognito.user_pool_domain
 }
 
 module "s3" {

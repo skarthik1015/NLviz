@@ -1,16 +1,19 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import { ReactNode } from "react";
+"use client";
 
-export const metadata: Metadata = {
-  title: "NL Query Tool",
-  description: "Natural language analytics workbench",
-};
+import "./globals.css";
+import { ReactNode } from "react";
+import { ConnectionProvider } from "./lib/connection-context";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <title>NL Query Tool</title>
+        <meta name="description" content="Natural language analytics workbench" />
+      </head>
+      <body>
+        <ConnectionProvider>{children}</ConnectionProvider>
+      </body>
     </html>
   );
 }

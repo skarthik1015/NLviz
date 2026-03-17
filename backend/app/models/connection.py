@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class ConnectionProfile(BaseModel):
     connection_id: str
     display_name: str
-    connector_type: Literal["duckdb", "postgres"]
+    connector_type: Literal["duckdb", "postgres", "athena"]
     created_at: datetime
     owner_id: str | None = None
     status: Literal["active", "archived"] = "active"
@@ -63,7 +63,7 @@ class GenerationJob(BaseModel):
 # --- Request / Response models for API ---
 
 class ConnectionTestRequest(BaseModel):
-    connector_type: Literal["duckdb", "postgres"]
+    connector_type: Literal["duckdb", "postgres", "athena"]
     params: dict[str, Any]
 
 
@@ -74,7 +74,7 @@ class ConnectionTestResponse(BaseModel):
 
 
 class ConnectionCreateRequest(BaseModel):
-    connector_type: Literal["duckdb", "postgres"]
+    connector_type: Literal["duckdb", "postgres", "athena"]
     params: dict[str, Any]
     display_name: str
 

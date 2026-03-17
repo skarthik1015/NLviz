@@ -7,16 +7,22 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - depends on local environment
     DuckDBConnector = None
 
+try:
+    from .athena_connector import AthenaConnector
+except ModuleNotFoundError:  # pragma: no cover - pyathena not installed
+    AthenaConnector = None
+
 CONNECTOR_REGISTRY = {
     "duckdb": DuckDBConnector,
     "postgres": PostgresConnector,
     "redshift": RedshiftConnector,
     "snowflake": None,
-    "athena": None,
+    "athena": AthenaConnector,
 }
 
 __all__ = [
     "CONNECTOR_REGISTRY",
+    "AthenaConnector",
     "DataConnector",
     "DuckDBConnector",
     "PostgresConnector",

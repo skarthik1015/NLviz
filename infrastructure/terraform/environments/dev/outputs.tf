@@ -5,12 +5,12 @@ output "alb_dns_name" {
 
 output "app_url" {
   description = "Full URL of the frontend"
-  value       = "http://${module.alb.alb_dns_name}"
+  value       = "https://${var.domain_name}"
 }
 
 output "api_base_url" {
   description = "Full API base URL (use as NEXT_PUBLIC_API_BASE_URL in frontend build)"
-  value       = "http://${module.alb.alb_dns_name}/api"
+  value       = "https://${var.domain_name}/api"
 }
 
 output "ecr_backend_url" {
@@ -68,12 +68,16 @@ output "post_deploy_instructions" {
   description = "Steps required after first terraform apply"
   value       = <<-EOT
     ── Post-deploy steps ──────────────────────────────────────────────
-    1. Store Anthropic API key:
+    1. Before apply, register/delegate your domain and set `domain_name` in `terraform.tfvars`.
+
+    2. Run `terraform apply` to create/update DNS, Cognito, ALB HTTPS, and related infrastructure.
+
+    3. Store Anthropic API key:
        aws secretsmanager put-secret-value \
          --secret-id ${module.secrets.anthropic_secret_name} \
          --secret-string '{"api_key":"YOUR_SK_ANT_KEY"}'
 
-    2. Add GitHub repository secrets:
+    4. Add GitHub repository secrets:
        AWS_ROLE_ARN          = ${module.iam.github_deploy_role_arn}
        AWS_REGION            = ${var.aws_region}
        ECR_BACKEND_URL       = ${module.ecr.backend_repository_url}
@@ -82,10 +86,11 @@ output "post_deploy_instructions" {
        ECS_BACKEND_SERVICE   = ${module.ecs.backend_service_name}
        ECS_FRONTEND_SERVICE  = ${module.ecs.frontend_service_name}
        ALB_DNS_NAME          = ${module.alb.alb_dns_name}
-       API_BASE_URL          = http://${module.alb.alb_dns_name}/api
+       API_BASE_URL          = https://${var.domain_name}/api
 
-    3. Push to main → CI/CD deploys automatically.
-    4. Visit: http://${module.alb.alb_dns_name}
+    5. For local development, set DEV_USER_ID=<your-id> to bypass ALB/Cognito auth.
+    6. Push to main → CI/CD deploys automatically.
+    7. Visit: https://${var.domain_name}
     ───────────────────────────────────────────────────────────────────
   EOT
 }

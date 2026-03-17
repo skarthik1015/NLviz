@@ -38,3 +38,14 @@ variable "frontend_image_tag" {
   description = "Docker image tag for the frontend (updated by CI/CD)"
   default     = "latest"
 }
+
+variable "domain_name" {
+  type        = string
+  description = "Custom domain name for the application (e.g. nlquerytool.com)"
+}
+
+variable "cognito_domain_prefix" {
+  type        = string
+  description = "Globally unique prefix for the Cognito hosted UI domain"
+  default     = "nl-query-tool-dev"
+}

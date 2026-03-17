@@ -13,10 +13,13 @@ from app.dependencies import (
     get_query_service,
     get_secret_store,
 )
+from app.security.auth import AuthUser, get_current_user
 from app.services.audit_log import AuditLog
 from app.services.connection_service import ConnectionResolutionError
 from app.services.connection_store import ConnectionStore
 from app.services.secret_store import SecretStore
+
+_TEST_USER = AuthUser(user_id="test-user", email="test@example.com")
 
 
 class MissingRuntimeService:
@@ -38,6 +41,7 @@ def _build_connection_app(tmp_path: Path) -> tuple[TestClient, ConnectionStore, 
     app.dependency_overrides[get_connection_store] = lambda: connection_store
     app.dependency_overrides[get_secret_store] = lambda: secret_store
     app.dependency_overrides[get_audit_log] = lambda: audit_log
+    app.dependency_overrides[get_current_user] = lambda: _TEST_USER
 
     return TestClient(app), connection_store, secret_store
 

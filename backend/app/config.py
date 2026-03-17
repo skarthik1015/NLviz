@@ -63,6 +63,11 @@ class AppConfig:
     log_level: str
     """Python logging level string, e.g. 'INFO', 'DEBUG'."""
 
+    # ── Auth ─────────────────────────────────────────────────────────
+    dev_user_id: str | None
+    """When set, bypasses ALB/Cognito auth and uses this as the user ID.
+    Only for local development — never set in deployed environments."""
+
     # ── LLM ──────────────────────────────────────────────────────────
     anthropic_model: str
     """Claude model ID used for intent mapping."""
@@ -96,5 +101,6 @@ class AppConfig:
             rate_limit_rpm=int(os.getenv("RATE_LIMIT_RPM", "30")),
             environment=os.getenv("ENVIRONMENT", "development"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
+            dev_user_id=os.getenv("DEV_USER_ID") or None,
             anthropic_model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         )

@@ -70,50 +70,48 @@ resource "aws_lb_target_group" "frontend" {
   tags = merge(local.tags, { Name = "${var.project}-${var.environment}-frontend-tg" })
 }
 
-# ── HTTP Listener + Routing Rules ────────────────────────────────────
+# ── HTTPS Listener + Cognito Auth ────────────────────────────────────
 #
-# Traffic flow:
-#   GET /api/*  → backend (FastAPI, port 8000) — ALB forwards full path including /api
-#   GET /*      → frontend (Next.js, port 3000)
+# Traffic flow (authenticated):
+#   GET /healthz → backend (no auth — ALB health check)
+#   GET /api/*   → Cognito auth → backend (FastAPI, port 8000)
+#   GET /*       → Cognito auth → frontend (Next.js, port 3000)
 #
-# FastAPI must be configured with API_PREFIX=/api so it registers routes
-# under /api/chat, /api/schema, etc. /healthz remains at root for ALB health checks.
+# The ALB handles the full OAuth2 code grant flow with Cognito Hosted UI.
+# After successful login, ALB sets AWSELBAuthSessionCookie-* and injects
+# x-amzn-oidc-identity (user sub) and x-amzn-oidc-data (signed JWT) headers.
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.certificate_arn
 
-  # Default: all unmatched traffic goes to the frontend
+  # Default: authenticate via Cognito, then forward to frontend
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
-  }
+    type = "authenticate-cognito"
+    order = 1
 
-  tags = merge(local.tags, { Name = "${var.project}-${var.environment}-http-listener" })
-}
-
-resource "aws_lb_listener_rule" "api" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 10
-
-  condition {
-    path_pattern {
-      values = ["/api/*"]
+    authenticate_cognito {
+      user_pool_arn       = var.cognito_user_pool_arn
+      user_pool_client_id = var.cognito_user_pool_client_id
+      user_pool_domain    = var.cognito_user_pool_domain
     }
   }
 
-  action {
+  default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
+    order            = 2
+    target_group_arn = aws_lb_target_group.frontend.arn
   }
 
-  tags = merge(local.tags, { Name = "${var.project}-${var.environment}-api-rule" })
+  tags = merge(local.tags, { Name = "${var.project}-${var.environment}-https-listener" })
 }
 
-# Health check endpoint is at /healthz (no prefix), also routed to backend
+# Health check — no auth (priority 5, evaluated first)
 resource "aws_lb_listener_rule" "healthz" {
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = aws_lb_listener.https.arn
   priority     = 5
 
   condition {
@@ -128,4 +126,55 @@ resource "aws_lb_listener_rule" "healthz" {
   }
 
   tags = merge(local.tags, { Name = "${var.project}-${var.environment}-healthz-rule" })
+}
+
+# API routes — authenticate then forward to backend
+resource "aws_lb_listener_rule" "api" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+
+  action {
+    type  = "authenticate-cognito"
+    order = 1
+
+    authenticate_cognito {
+      user_pool_arn       = var.cognito_user_pool_arn
+      user_pool_client_id = var.cognito_user_pool_client_id
+      user_pool_domain    = var.cognito_user_pool_domain
+    }
+  }
+
+  action {
+    type             = "forward"
+    order            = 2
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  tags = merge(local.tags, { Name = "${var.project}-${var.environment}-api-rule" })
+}
+
+# ── HTTP → HTTPS Redirect ────────────────────────────────────────────
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  tags = merge(local.tags, { Name = "${var.project}-${var.environment}-http-redirect" })
 }

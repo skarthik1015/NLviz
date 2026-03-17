@@ -107,9 +107,17 @@ npm run build
 
 Backend:
 - `CORS_ALLOW_ORIGINS` comma-separated list, defaults to `http://localhost:3000,http://127.0.0.1:3000`
+- `DEV_USER_ID` optional local-development bypass for ALB/Cognito auth; set this to a stable user id when testing personal database connections locally
 
 Frontend:
 - `NEXT_PUBLIC_API_BASE_URL` defaults to `http://localhost:8000`
+
+## Deploy Notes
+
+To deploy the authenticated multi-user setup:
+- register or delegate your application domain in Route 53 and set `domain_name` in [infrastructure/terraform/environments/dev/terraform.tfvars](c:/Lace/NLviz/nl-query-tool/infrastructure/terraform/environments/dev/terraform.tfvars)
+- run `terraform apply` in `infrastructure/terraform/environments/dev` to provision DNS, Cognito, ALB HTTPS, and the rest of the stack
+- set `DEV_USER_ID=<your-id>` locally when developing without the ALB/Cognito flow
 
 ## Notes
 

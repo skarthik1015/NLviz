@@ -4,6 +4,8 @@
 project     = "nl-query-tool"
 environment = "dev"
 aws_region  = "us-east-1"
+domain_name = "dev.nlqtool.com"
+cognito_domain_prefix = "nl-query-tool-dev"
 
 # GitHub OIDC trust
 github_org  = "skarthik1015"

@@ -22,3 +22,25 @@ variable "alb_sg_id" {
   type        = string
   description = "Security group ID for the ALB"
 }
+
+# ── Cognito + HTTPS ──────────────────────────────────────────────────
+
+variable "certificate_arn" {
+  type        = string
+  description = "ARN of the ACM certificate for HTTPS"
+}
+
+variable "cognito_user_pool_arn" {
+  type        = string
+  description = "ARN of the Cognito user pool"
+}
+
+variable "cognito_user_pool_client_id" {
+  type        = string
+  description = "Cognito app client ID for ALB integration"
+}
+
+variable "cognito_user_pool_domain" {
+  type        = string
+  description = "Cognito hosted UI domain prefix"
+}

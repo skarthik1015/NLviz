@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { sendChatQuestion } from "../lib/api";
+import { useConnection } from "../lib/connection-context";
 import { ChatResponse } from "../lib/types";
 import { PlotPreview } from "./plot-preview";
 import { ResultsTable } from "./results-table";
@@ -29,6 +30,7 @@ function looksUnsafeQuery(input: string): boolean {
 }
 
 export function ChatWorkbench() {
+  const { activeConnectionId } = useConnection();
   const [question, setQuestion] = useState(EXAMPLES[0]);
   const [result, setResult] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function ChatWorkbench() {
     setIsSubmitting(true);
 
     try {
-      const response = await sendChatQuestion(trimmed, showDebug);
+      const response = await sendChatQuestion(trimmed, showDebug, activeConnectionId ?? undefined);
       setResult(response);
     } catch (submissionError) {
       setResult(null);

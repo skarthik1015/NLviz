@@ -8,6 +8,11 @@ output "alb_arn" {
   value       = aws_lb.main.arn
 }
 
+output "alb_zone_id" {
+  description = "Route 53 zone ID of the ALB (for alias records)"
+  value       = aws_lb.main.zone_id
+}
+
 output "backend_target_group_arn" {
   description = "ARN of the backend target group"
   value       = aws_lb_target_group.backend.arn
