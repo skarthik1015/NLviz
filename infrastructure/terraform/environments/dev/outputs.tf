@@ -5,12 +5,12 @@ output "alb_dns_name" {
 
 output "app_url" {
   description = "Full URL of the frontend"
-  value       = "https://${var.domain_name}"
+  value       = "http://${module.alb.alb_dns_name}"
 }
 
 output "api_base_url" {
   description = "Full API base URL (use as NEXT_PUBLIC_API_BASE_URL in frontend build)"
-  value       = "https://${var.domain_name}/api"
+  value       = "http://${module.alb.alb_dns_name}/api"
 }
 
 output "ecr_backend_url" {
@@ -68,9 +68,9 @@ output "post_deploy_instructions" {
   description = "Steps required after first terraform apply"
   value       = <<-EOT
     ── Post-deploy steps ──────────────────────────────────────────────
-    1. Before apply, register/delegate your domain and set `domain_name` in `terraform.tfvars`.
+    1. Run `terraform apply` to create/update the VPC, ALB, ECS services, RDS, and S3 buckets.
 
-    2. Run `terraform apply` to create/update DNS, Cognito, ALB HTTPS, and related infrastructure.
+    2. The dev stack exposes the app over plain HTTP on the ALB DNS name and injects DEV_USER_ID=${var.backend_dev_user_id} into the backend task for auth bypass.
 
     3. Store Anthropic API key:
        aws secretsmanager put-secret-value \
@@ -86,11 +86,11 @@ output "post_deploy_instructions" {
        ECS_BACKEND_SERVICE   = ${module.ecs.backend_service_name}
        ECS_FRONTEND_SERVICE  = ${module.ecs.frontend_service_name}
        ALB_DNS_NAME          = ${module.alb.alb_dns_name}
-       API_BASE_URL          = https://${var.domain_name}/api
+       API_BASE_URL          = http://${module.alb.alb_dns_name}/api
 
     5. For local development, set DEV_USER_ID=<your-id> to bypass ALB/Cognito auth.
     6. Push to main → CI/CD deploys automatically.
-    7. Visit: https://${var.domain_name}
+    7. Visit: http://${module.alb.alb_dns_name}
     ───────────────────────────────────────────────────────────────────
   EOT
 }

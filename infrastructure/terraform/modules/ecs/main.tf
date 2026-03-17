@@ -52,20 +52,25 @@ resource "aws_ecs_task_definition" "backend" {
       protocol      = "tcp"
     }]
 
-    environment = [
-      { name = "API_PREFIX",           value = "/api" },
-      { name = "ENVIRONMENT",          value = var.environment },
-      { name = "LOG_LEVEL",            value = "INFO" },
-      { name = "CORS_ALLOW_ORIGINS",   value = "http://${var.alb_dns_name}" },
-      { name = "SECRET_BACKEND",       value = "aws_secrets_manager" },
-      { name = "SECRET_PREFIX",        value = var.project },
-      { name = "UPLOAD_BUCKET",        value = var.uploads_bucket_name },
-      { name = "SCHEMA_BUCKET",        value = var.schemas_bucket_name },
-      { name = "AWS_REGION",           value = var.aws_region },
-      { name = "AUTO_MIGRATE",         value = "true" },
-      { name = "LLM_PROVIDER",         value = "openai" },
-      { name = "LLM_MODEL",            value = "gpt-4.1-mini" },
-    ]
+    environment = concat(
+      [
+        { name = "API_PREFIX", value = "/api" },
+        { name = "ENVIRONMENT", value = var.environment },
+        { name = "LOG_LEVEL", value = "INFO" },
+        { name = "CORS_ALLOW_ORIGINS", value = "http://${var.alb_dns_name}" },
+        { name = "SECRET_BACKEND", value = "aws_secrets_manager" },
+        { name = "SECRET_PREFIX", value = var.project },
+        { name = "UPLOAD_BUCKET", value = var.uploads_bucket_name },
+        { name = "SCHEMA_BUCKET", value = var.schemas_bucket_name },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "AUTO_MIGRATE", value = "true" },
+        { name = "LLM_PROVIDER", value = "openai" },
+        { name = "LLM_MODEL", value = "gpt-4.1-mini" },
+      ],
+      var.backend_dev_user_id != null ? [
+        { name = "DEV_USER_ID", value = var.backend_dev_user_id },
+      ] : []
+    )
 
     # Secrets injected at container startup from Secrets Manager.
     # DATABASE_URL is the full connection_string from the RDS secret JSON.

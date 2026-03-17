@@ -11,7 +11,10 @@ import {
 } from "./types";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
+  (typeof window !== "undefined"
+    ? `${window.location.origin}/api`
+    : "http://localhost:8000");
 
 type ApiErrorPayload = {
   detail?: string;

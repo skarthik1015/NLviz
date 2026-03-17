@@ -114,9 +114,10 @@ Frontend:
 
 ## Deploy Notes
 
-To deploy the authenticated multi-user setup:
-- register or delegate your application domain in Route 53 and set `domain_name` in [infrastructure/terraform/environments/dev/terraform.tfvars](c:/Lace/NLviz/nl-query-tool/infrastructure/terraform/environments/dev/terraform.tfvars)
-- run `terraform apply` in `infrastructure/terraform/environments/dev` to provision DNS, Cognito, ALB HTTPS, and the rest of the stack
+For the current dev setup:
+- run `terraform apply` in `infrastructure/terraform/environments/dev` to provision the ALB, ECS services, RDS, and S3-backed connection workflow
+- access the app over the ALB DNS name output by Terraform; a custom domain is not required
+- the hosted backend uses `backend_dev_user_id` from [terraform.tfvars](c:/Lace/NLviz/nl-query-tool/infrastructure/terraform/environments/dev/terraform.tfvars) as a dev auth bypass until Cognito is re-enabled
 - set `DEV_USER_ID=<your-id>` locally when developing without the ALB/Cognito flow
 
 ## Notes

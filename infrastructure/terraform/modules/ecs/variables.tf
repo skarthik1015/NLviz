@@ -81,7 +81,7 @@ variable "openai_secret_arn" {
 variable "anthropic_secret_arn" {
   type        = string
   description = "Secrets Manager ARN for Anthropic API key"
-  default = null
+  default     = null
 }
 
 variable "uploads_bucket_name" {
@@ -97,6 +97,13 @@ variable "schemas_bucket_name" {
 variable "alb_dns_name" {
   type        = string
   description = "ALB DNS name used in CORS and as API base URL"
+}
+
+variable "backend_dev_user_id" {
+  type        = string
+  description = "Optional dev-only fallback user id for hosted stacks without ALB/Cognito auth"
+  default     = null
+  nullable    = true
 }
 
 variable "backend_cpu" {

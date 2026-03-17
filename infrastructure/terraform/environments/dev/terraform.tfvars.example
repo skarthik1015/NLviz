@@ -1,11 +1,10 @@
 # Copy this file to terraform.tfvars and fill in your values.
 # terraform.tfvars is gitignored — never commit it.
 
-project     = "nl-query-tool"
-environment = "dev"
-aws_region  = "us-east-1"
-domain_name = "dev.nlqtool.com"
-cognito_domain_prefix = "nl-query-tool-dev"
+project             = "nl-query-tool"
+environment         = "dev"
+aws_region          = "us-east-1"
+backend_dev_user_id = "karthik"
 
 # GitHub OIDC trust
 github_org  = "skarthik1015"

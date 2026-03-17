@@ -42,10 +42,19 @@ variable "frontend_image_tag" {
 variable "domain_name" {
   type        = string
   description = "Custom domain name for the application (e.g. nlquerytool.com)"
+  default     = null
+  nullable    = true
 }
 
 variable "cognito_domain_prefix" {
   type        = string
   description = "Globally unique prefix for the Cognito hosted UI domain"
-  default     = "nl-query-tool-dev"
+  default     = null
+  nullable    = true
+}
+
+variable "backend_dev_user_id" {
+  type        = string
+  description = "Dev-only fallback owner id injected into the hosted backend when ALB/Cognito auth is disabled"
+  default     = "karthik"
 }
