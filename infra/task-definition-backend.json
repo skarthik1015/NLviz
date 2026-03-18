@@ -28,7 +28,8 @@
         { "name": "RATE_LIMIT_RPM",   "value": "60" },
         { "name": "AUTO_MIGRATE",     "value": "true" },
         { "name": "LLM_PROVIDER",     "value": "openai" },
-        { "name": "LLM_MODEL",        "value": "gpt-4.1-mini" }
+        { "name": "LLM_MODEL",        "value": "gpt-4.1-mini" },
+        { "name": "DEV_USER_ID",      "value": "dev" }
       ],
       "secrets": [
         {
