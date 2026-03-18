@@ -154,8 +154,10 @@ jobs:
             | sed "s|{{UPLOAD_BUCKET}}|$UPLOAD_BUCKET|g" \
             | sed "s|{{SCHEMA_BUCKET}}|$SCHEMA_BUCKET|g" \
             | sed "s|{{AWS_REGION}}|$AWS_REGION|g")
-          REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
-            --cli-input-json file:///dev/stdin \
+          echo "$TASK_DEF" | python3 -m json.tool > /dev/null  # validate JSON
+          echo "$TASK_DEF" > /tmp/backend-task-def.json
+          REVISION=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/backend-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "task_def_arn=$REVISION" >> "$GITHUB_OUTPUT"
@@ -173,8 +175,10 @@ jobs:
             | sed "s|{{TASK_ROLE_ARN}}|$TASK_ROLE_ARN|g" \
             | sed "s|{{EXECUTION_ROLE_ARN}}|$EXECUTION_ROLE_ARN|g" \
             | sed "s|{{AWS_REGION}}|$AWS_REGION|g")
-          REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
-            --cli-input-json file:///dev/stdin \
+          echo "$TASK_DEF" | python3 -m json.tool > /dev/null  # validate JSON
+          echo "$TASK_DEF" > /tmp/frontend-task-def.json
+          REVISION=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/frontend-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "task_def_arn=$REVISION" >> "$GITHUB_OUTPUT"
