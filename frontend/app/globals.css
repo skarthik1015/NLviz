@@ -1,4 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
+  /* ── Legacy variables (used by existing CSS classes) ─── */
   --bg: #f5efe4;
   --surface: rgba(255, 252, 246, 0.88);
   --surface-strong: #fffaf1;
@@ -11,6 +16,22 @@
   --shadow: 0 18px 50px rgba(58, 34, 12, 0.1);
   --chart-viewport-height: 420px;
   --trace-max-height: 260px;
+
+  /* ── Tailwind design tokens (HSL channel values) ─────── */
+  --background: 35 45% 93%;
+  --foreground: 25 47% 10%;
+  --card: 38 100% 98%;
+  --card-foreground: 25 47% 10%;
+  --primary: 16 57% 40%;
+  --primary-foreground: 35 100% 97%;
+  --muted-bg: 30 20% 88%;
+  --muted-foreground: 25 18% 42%;
+  --border-hsl: 25 32% 82%;
+  --accent-hsl: 16 57% 40%;
+  --accent-foreground: 35 100% 97%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --radius: 24px;
 }
 
 * {

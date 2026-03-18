@@ -4,6 +4,11 @@ __pycache__/
 *.pyc
 backend/data/raw/
 backend/data/uploads/
+backend/data/.secrets/
+backend/data/schemas/
+backend/data/connections.jsonl
+backend/data/schema_versions.jsonl
+backend/data/audit.jsonl
 .claude/
 Claude.md
 MVP_CODEBASE_WALKTHROUGH.md

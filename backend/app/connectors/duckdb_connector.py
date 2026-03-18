@@ -4,7 +4,6 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
-
 import duckdb
 import pandas as pd
 
@@ -176,7 +175,7 @@ class DuckDBConnector(DataConnector):
             conn = duckdb.connect(":memory:")
             conn.execute("INSTALL httpfs; LOAD httpfs;")
             conn.execute(f"SET s3_region='{self._aws_region}';")
-            # Credentials resolved automatically via ECS task role (instance metadata)
+            self._configure_s3_credentials(conn)
             quoted = self._quote_identifier(self._table_name)
             if self._s3_suffix == ".csv":
                 conn.execute(
@@ -188,6 +187,24 @@ class DuckDBConnector(DataConnector):
                 )
             return conn
         return duckdb.connect(str(self.db_path), read_only=True)
+
+    def _configure_s3_credentials(self, conn) -> None:
+        import boto3
+
+        session = boto3.Session(region_name=self._aws_region)
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise RuntimeError("AWS credentials not available for DuckDB S3 access")
+
+        frozen = credentials.get_frozen_credentials()
+        conn.execute(f"SET s3_access_key_id='{self._escape_sql_string(frozen.access_key)}';")
+        conn.execute(f"SET s3_secret_access_key='{self._escape_sql_string(frozen.secret_key)}';")
+        if frozen.token:
+            conn.execute(f"SET s3_session_token='{self._escape_sql_string(frozen.token)}';")
+
+    @staticmethod
+    def _escape_sql_string(value: str) -> str:
+        return value.replace("'", "''")
 
     def _list_tables(self) -> list[str]:
         with self._connect() as conn:

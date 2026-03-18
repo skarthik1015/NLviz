@@ -7,6 +7,7 @@ from app.api.routes.chat import router
 from app.dependencies import get_query_service
 from app.models import ChatResponse, SemanticIntent
 from app.security import SQLSafetyError
+from app.security.auth import AuthUser, get_current_user
 
 
 class SuccessService:
@@ -34,10 +35,14 @@ class InvalidService:
         raise self._error
 
 
+_TEST_USER = AuthUser(user_id="test-user", email="test@example.com")
+
+
 def _build_app(service) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_query_service] = lambda: service
+    app.dependency_overrides[get_current_user] = lambda: _TEST_USER
     return app
 
 

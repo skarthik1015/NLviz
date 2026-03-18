@@ -128,6 +128,9 @@ class GenerationJobManager:
         except Exception as exc:
             logger.exception("Schema generation failed for connection %s", connection_id)
             self._update_status(job_id, "failed", error=str(exc))
+        finally:
+            if hasattr(connector, "close"):
+                connector.close()
 
     def _update_status(
         self,

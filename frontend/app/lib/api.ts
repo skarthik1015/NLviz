@@ -7,6 +7,7 @@ import {
   ConnectionTestResponse,
   GenerateResponse,
   JobStatusResponse,
+  SchemaResponse,
   User,
 } from "./types";
 
@@ -151,6 +152,12 @@ export async function getJobStatus(
   );
   if (!res.ok) await handleError(res);
   return (await res.json()) as JobStatusResponse;
+}
+
+export async function getSchema(connectionId?: string): Promise<SchemaResponse> {
+  const res = await apiFetch("/schema", {}, connectionId);
+  if (!res.ok) await handleError(res);
+  return (await res.json()) as SchemaResponse;
 }
 
 export async function publishSchema(

@@ -72,6 +72,9 @@ class BaseConnectionStore(ABC):
     @abstractmethod
     def archive_versions_for_connection(self, connection_id: str) -> None: ...
 
+    @abstractmethod
+    def get_published_connection_ids(self) -> set[str]: ...
+
     # ── Factory ───────────────────────────────────────────────────────
 
     @classmethod
@@ -177,6 +180,10 @@ class JsonlConnectionStore(BaseConnectionStore):
                     updated = v.model_copy(update={"status": "archived"})
                     self._versions[vid] = updated
                     self._append_jsonl(self._versions_path, updated)
+
+    def get_published_connection_ids(self) -> set[str]:
+        with self._lock:
+            return {v.connection_id for v in self._versions.values() if v.status == "published"}
 
     # ── Persistence helpers ──────────────────────────────────────────
 
@@ -377,6 +384,13 @@ class RDSConnectionStore(BaseConnectionStore):
                     """,
                     (connection_id,),
                 )
+
+    def get_published_connection_ids(self) -> set[str]:
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT DISTINCT connection_id FROM schema_versions WHERE status = 'published'")
+                rows = cur.fetchall()
+        return {row[0] for row in rows}
 
 
 # ── Row-to-model helpers ──────────────────────────────────────────────

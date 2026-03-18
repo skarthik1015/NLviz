@@ -43,6 +43,10 @@ class BaseSchemaStorage(ABC):
             path: Value previously returned by ``save()``.
         """
 
+    @abstractmethod
+    def delete(self, path: str) -> None:
+        """Delete a previously saved schema artifact."""
+
     # ── Factory ───────────────────────────────────────────────────────
 
     @classmethod
@@ -75,6 +79,11 @@ class LocalSchemaStorage(BaseSchemaStorage):
     def load(self, path: str) -> str:
         return Path(path).read_text(encoding="utf-8")
 
+    def delete(self, path: str) -> None:
+        file_path = Path(path)
+        if file_path.exists():
+            file_path.unlink()
+
 
 class S3SchemaStorage(BaseSchemaStorage):
     """Stores schema YAML files in S3.
@@ -103,3 +112,12 @@ class S3SchemaStorage(BaseSchemaStorage):
             return Path(path).read_text(encoding="utf-8")
         data = self._s3.download_bytes(key)
         return data.decode("utf-8")
+
+    def delete(self, path: str) -> None:
+        if path.startswith("s3://"):
+            self._s3.delete(self._s3.key_from_url(path))
+            return
+        logger.warning("S3SchemaStorage.delete() received a local path: %s â€” falling back to filesystem", path)
+        local_path = Path(path)
+        if local_path.exists():
+            local_path.unlink()

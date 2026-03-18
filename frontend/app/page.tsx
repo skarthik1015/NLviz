@@ -18,23 +18,21 @@ export default function HomePage() {
     );
   }
 
+  if (mode === "picker") {
+    return <ConnectionPicker />;
+  }
+
   return (
     <main className="shell">
       <AppHeader />
-      {mode === "picker" ? (
-        <ConnectionPicker />
-      ) : (
-        <>
-          <section className="hero">
-            <div className="eyebrow">NL Query Tool</div>
-            <h1 className="title">Ask your data anything.</h1>
-            <p className="subtitle">
-              Type a natural-language question and get SQL, tabular results, and charts — powered by your connected database.
-            </p>
-          </section>
-          <ChatWorkbench />
-        </>
-      )}
+      <section className="hero">
+        <div className="eyebrow">NL Query Tool</div>
+        <h1 className="title">Ask your data anything.</h1>
+        <p className="subtitle">
+          Type a natural-language question and get SQL, tabular results, and charts — powered by your connected database.
+        </p>
+      </section>
+      <ChatWorkbench />
     </main>
   );
 }

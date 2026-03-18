@@ -36,15 +36,40 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [connections, setConnections] = useState<ConnectionProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const reconcileConnections = useCallback(
+    (list: ConnectionProfile[]) => {
+      setConnections(list);
+      const stillValid = activeConnectionId
+        ? list.find((conn) => conn.connection_id === activeConnectionId)
+        : null;
+      if (stillValid) {
+        setActiveConnectionId(stillValid.connection_id);
+        setMode("workspace");
+        return;
+      }
+      const firstReady = list.find((conn) => conn.query_ready);
+      if (firstReady) {
+        setActiveConnectionId(firstReady.connection_id);
+        setMode("workspace");
+        return;
+      }
+      setActiveConnectionId(null);
+      setMode("picker");
+    },
+    [activeConnectionId, setMode],
+  );
+
   const refreshConnections = useCallback(async () => {
     try {
       const list = await listConnections();
-      setConnections(list);
+      reconcileConnections(list);
     } catch {
       // If auth fails or API is down, show the picker anyway
       setConnections([]);
+      setActiveConnectionId(null);
+      setMode("picker");
     }
-  }, []);
+  }, [reconcileConnections, setMode]);
 
   // On mount: load connections and decide initial mode
   useEffect(() => {
@@ -52,8 +77,9 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       try {
         const list = await listConnections();
         setConnections(list);
-        if (list.length > 0) {
-          setActiveConnectionId(list[0].connection_id);
+        const firstReady = list.find((conn) => conn.query_ready);
+        if (firstReady) {
+          setActiveConnectionId(firstReady.connection_id);
           setMode("workspace");
         } else {
           setMode("picker");

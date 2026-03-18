@@ -64,6 +64,7 @@ export type ConnectionProfile = {
   created_at: string;
   owner_id: string | null;
   status: "active" | "archived";
+  query_ready: boolean;
 };
 
 export type ConnectionTestRequest = {
@@ -110,6 +111,16 @@ export type JobStatusResponse = {
 export type GenerateResponse = {
   job_id: string;
   status: string;
+};
+
+export type SchemaResponse = {
+  connector_type: string;
+  tables: Record<string, Array<Record<string, unknown>>>;
+  row_counts: Record<string, number>;
+  join_paths: Array<Record<string, string>>;
+  metrics: Array<{ name: string; display_name: string }>;
+  dimensions: Array<{ name: string; display_name: string }>;
+  time_dimensions: Array<{ name: string; display_name: string }>;
 };
 
 // Legacy types kept for plot-spec.ts fallback — no longer used in main UI

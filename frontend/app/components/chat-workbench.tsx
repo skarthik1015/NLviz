@@ -1,21 +1,34 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { motion } from "framer-motion";
+import { useEffect, useState, type FormEvent } from "react";
 
-import { sendChatQuestion } from "../lib/api";
+import { getSchema, sendChatQuestion } from "../lib/api";
 import { useConnection } from "../lib/connection-context";
-import { ChatResponse } from "../lib/types";
+import { ChatResponse, SchemaResponse } from "../lib/types";
 import { PlotPreview } from "./plot-preview";
 import { ResultsTable } from "./results-table";
 
-const EXAMPLES = [
-  "Show total revenue by customer state",
-  "Show order count by product category",
-  "Show total revenue over time",
-  "Top 10 categories by revenue",
-  "Average delivery time by seller state",
-  "Revenue in 2018 by product category",
-];
+function buildExamples(schema: SchemaResponse | null): string[] {
+  if (!schema || schema.metrics.length === 0) {
+    return ["Ask a question about your data"];
+  }
+
+  const metric = schema.metrics[0]?.display_name ?? schema.metrics[0]?.name ?? "value";
+  const metric2 = schema.metrics[1]?.display_name ?? metric;
+  const dimension = schema.dimensions[0]?.display_name ?? null;
+  const dimension2 = schema.dimensions[1]?.display_name ?? dimension;
+  const timeDimension = schema.time_dimensions[0]?.display_name ?? null;
+
+  const examples: string[] = [];
+  if (dimension) examples.push(`Show ${metric} by ${dimension}`);
+  if (dimension2 && dimension2 !== dimension) examples.push(`Top 10 ${dimension2} by ${metric}`);
+  if (timeDimension) examples.push(`Show ${metric} over time by ${timeDimension}`);
+  examples.push(`What is the ${metric}?`);
+  if (timeDimension && dimension) examples.push(`${metric2} in 2018 by ${dimension}`);
+
+  return examples.slice(0, 6);
+}
 
 const UNSAFE_PATTERNS = [
   /ignore\s+previous\s+instructions/i,
@@ -30,17 +43,46 @@ function looksUnsafeQuery(input: string): boolean {
 }
 
 export function ChatWorkbench() {
-  const { activeConnectionId } = useConnection();
-  const [question, setQuestion] = useState(EXAMPLES[0]);
+  const { activeConnectionId, connections } = useConnection();
+  const [question, setQuestion] = useState("");
   const [result, setResult] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [unsafeWarning, setUnsafeWarning] = useState<string | null>(null);
   const [allowUnsafeSubmit, setAllowUnsafeSubmit] = useState(false);
+  const [schema, setSchema] = useState<SchemaResponse | null>(null);
+  const activeConnection = connections.find((conn) => conn.connection_id === activeConnectionId);
+  const canQuery = activeConnection?.query_ready ?? activeConnectionId == null;
+  const examples = buildExamples(schema);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!canQuery) {
+      setSchema(null);
+      return;
+    }
+    getSchema(activeConnectionId ?? undefined)
+      .then((nextSchema) => {
+        if (!cancelled) {
+          setSchema(nextSchema);
+          setQuestion((current: string) => (current.trim() ? current : buildExamples(nextSchema)[0]));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSchema(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConnectionId, canQuery]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!canQuery) {
+      setError("Generate and publish a schema before querying this connection.");
+      return;
+    }
     const trimmed = question.trim();
     if (!trimmed) {
       setError("Enter a question before submitting.");
@@ -79,6 +121,7 @@ export function ChatWorkbench() {
 
   return (
     <div className="workspace">
+      {/* ── Composer panel ─────────────────────────────────── */}
       <section className="panel composer">
         <form onSubmit={handleSubmit} className="composer-grid">
           <label className="label">
@@ -91,38 +134,56 @@ export function ChatWorkbench() {
                 setUnsafeWarning(null);
                 setAllowUnsafeSubmit(false);
               }}
-              placeholder="For example: Top 10 sellers by revenue"
+              placeholder={`For example: ${examples[0]}`}
             />
           </label>
-          <div className="pill-row">
-            {EXAMPLES.map((example) => (
-              <button
+
+          {/* Prompt pills */}
+          <div className="flex flex-wrap gap-2">
+            {examples.map((example) => (
+              <motion.button
                 key={example}
-                className="pill"
                 type="button"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   setQuestion(example);
                   setUnsafeWarning(null);
                   setAllowUnsafeSubmit(false);
                 }}
                 disabled={isSubmitting}
+                className="rounded-full border border-border/40 bg-background/60 px-3.5 py-1.5 text-xs font-medium text-foreground/70 backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-background/80 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {example}
-              </button>
+              </motion.button>
             ))}
           </div>
+
+          {/* Toolbar */}
           <div className="toolbar">
             <div className="status">
-              {isSubmitting ? "Running semantic query pipeline..." : "Ready to query the backend API."}
+              {isSubmitting ? "Running semantic query pipeline…" : "Ready to query the backend API."}
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "var(--muted)" }}>
+            <label className="flex items-center gap-1.5 text-sm" style={{ color: "var(--muted)" }}>
               <input type="checkbox" checked={showDebug} onChange={(e) => setShowDebug(e.target.checked)} />
               Debug trace
             </label>
-            <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Querying..." : "Run Query"}
-            </button>
+            <motion.button
+              className="button"
+              type="submit"
+              disabled={isSubmitting || !canQuery}
+              whileHover={!isSubmitting && canQuery ? { translateY: -1 } : {}}
+              whileTap={!isSubmitting && canQuery ? { scale: 0.97 } : {}}
+            >
+              {isSubmitting ? "Querying…" : "Run Query"}
+            </motion.button>
+            {!canQuery && (
+              <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                This connection is not query-ready yet.
+              </span>
+            )}
           </div>
+
           {unsafeWarning ? (
             <div className="error">
               {unsafeWarning}{" "}
@@ -143,6 +204,7 @@ export function ChatWorkbench() {
         </form>
       </section>
 
+      {/* ── Results ────────────────────────────────────────── */}
       {result ? (
         <div className="results-grid">
           <section className="panel section chart-panel">
@@ -185,7 +247,7 @@ export function ChatWorkbench() {
                   <div className="stat-card">
                     <div className="stat-label">Date filter</div>
                     <div className="stat-value-sm">
-                      {result.intent.start_date} {"->"} {result.intent.end_date}
+                      {result.intent.start_date} {"→"} {result.intent.end_date}
                     </div>
                   </div>
                 )}

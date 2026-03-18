@@ -43,17 +43,14 @@ class PostgresConnector(DataConnector):
         return "postgres"
 
     def test_connection(self) -> bool:
+        conn = self._connect()  # let exceptions propagate with their message
         try:
-            conn = self._connect()
-            try:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT 1")
-                    cur.fetchone()
-            finally:
-                conn.close()
-            return True
-        except Exception:
-            return False
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        finally:
+            conn.close()
+        return True
 
     def execute_query(self, sql: str, limit: int = 5000) -> pd.DataFrame:
         from app.security import validate_sql_safety
@@ -130,6 +127,9 @@ class PostgresConnector(DataConnector):
             raise ValueError(f"Unsafe identifier: {identifier}")
         return f'"{identifier}"'
 
+    def _qualified_table(self, table_name: str) -> str:
+        return f'{self._quote(self._schema_name)}.{self._quote(table_name)}'
+
     def _get_allowed_tables(self) -> set[str]:
         if self._cached_allowed_tables is None:
             conn = self._connect()
@@ -168,7 +168,7 @@ class PostgresConnector(DataConnector):
             return [row[0] for row in cur.fetchall()]
 
     def _get_columns(self, conn, table_name: str) -> list[dict]:
-        safe_table = self._quote(table_name)
+        safe_table = self._qualified_table(table_name)
         columns: list[dict] = []
         with conn.cursor() as cur:
             cur.execute(
@@ -209,7 +209,7 @@ class PostgresConnector(DataConnector):
             row = cur.fetchone()
             estimate = row[0] if row else 0
             if estimate < 100_000:
-                safe_table = self._quote(table_name)
+                safe_table = self._qualified_table(table_name)
                 cur.execute(f"SELECT COUNT(*) FROM {safe_table}")
                 exact = cur.fetchone()
                 return exact[0] if exact else 0
@@ -219,7 +219,7 @@ class PostgresConnector(DataConnector):
         self, conn, table_name: str, columns: list[dict]
     ) -> dict[str, int]:
         ndv: dict[str, int] = {}
-        safe_table = self._quote(table_name)
+        safe_table = self._qualified_table(table_name)
         for col in columns:
             col_name = col["name"]
             safe_col = self._quote(col_name)

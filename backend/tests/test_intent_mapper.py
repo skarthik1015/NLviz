@@ -80,6 +80,37 @@ def test_heuristic_weekly_trend_uses_week_grain():
     assert intent.order_by == "time_asc"
 
 
+def test_heuristic_rejects_question_with_no_matching_metric():
+    with pytest.raises(IntentMappingError, match="no matching metric"):
+        HeuristicIntentMapper().map(
+            "median employee tenure by department",
+            registry=_load_registry(),
+            schema=SchemaContext(
+                tables={"customers": [], "orders": []},
+                row_counts={},
+                join_paths=[],
+            ),
+        )
+
+
+def test_heuristic_rejects_ambiguous_grouping_tail_without_schema_match():
+    router = IntentMapperRouter(
+        config=IntentMapperConfig(mode="heuristic"),
+        heuristic_mapper=HeuristicIntentMapper(),
+    )
+
+    with pytest.raises(IntentValidationError, match="unknown tables"):
+        router.map_with_metadata(
+            "show revenue by seller state",
+            registry=_load_registry(),
+            schema=SchemaContext(
+                tables={"customers": [], "orders": [], "order_payments": []},
+                row_counts={},
+                join_paths=[],
+            ),
+        )
+
+
 def test_validate_semantic_intent_rejects_unknown_metric():
     with pytest.raises(IntentValidationError, match="Unknown metric"):
         validate_semantic_intent(
@@ -124,7 +155,7 @@ def test_llm_router_falls_back_on_invalid_intent_with_trace():
         ),
     )
 
-    result = router.map_with_metadata("show orders by state", _load_registry(), _schema_context())
+    result = router.map_with_metadata("show orders by customer state", _load_registry(), _schema_context())
 
     assert result.source == "llm_fallback"
     assert result.intent.metric == "order_count"

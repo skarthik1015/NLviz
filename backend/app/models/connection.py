@@ -14,6 +14,7 @@ class ConnectionProfile(BaseModel):
     owner_id: str | None = None
     status: Literal["active", "archived"] = "active"
     denied_columns: list[str] = Field(default_factory=list)
+    query_ready: bool = False
 
 
 class SecretRef(BaseModel):

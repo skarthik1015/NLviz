@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from app.connectors.base import SchemaContext
 from app.dependencies import get_connector, get_schema_context, get_semantic_registry
 from app.models import SchemaResponse
+from app.security.auth import AuthUser, get_current_user
 from app.semantic import SemanticRegistry
 
 router = APIRouter(tags=["schema"])
@@ -13,6 +14,7 @@ async def get_schema(
     connector=Depends(get_connector),
     schema_ctx: SchemaContext = Depends(get_schema_context),
     registry: SemanticRegistry = Depends(get_semantic_registry),
+    _user: AuthUser = Depends(get_current_user),
 ) -> SchemaResponse:
     return SchemaResponse(
         connector_type=connector.get_connector_type(),

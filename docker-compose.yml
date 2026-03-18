@@ -9,8 +9,19 @@ services:
       - "8000:8000"
     environment:
       CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DEV_USER_ID: karthik
+      SECRET_BACKEND: local
+      # Fixed 32-byte key so Fernet-encrypted connection credentials survive container restarts.
+      # Change this value if you want to rotate secrets (existing connections will need to be recreated).
+      SECRET_STORE_KEY: c_8ixACFhNp2gJnitMAWo4aOtgvM3xUtl6FY4avjlTk=
+      ENVIRONMENT: development
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LLM_PROVIDER: openai
+      LLM_MODEL: gpt-4.1-mini
     volumes:
       - ./backend/data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     build:

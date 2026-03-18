@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
 
     app.state.config = config
     app.state.upload_storage = upload_storage
+    app.state.schema_storage = schema_storage
     # Core services
     app.state.connection_service = services["connection_service"]
     app.state.connection_store = services["connection_store"]
@@ -104,16 +105,19 @@ config = AppConfig.from_env()
 
 app = FastAPI(title="NL Query Tool API", version="0.1.0", lifespan=lifespan)
 
+# NOTE: Starlette middleware is LIFO — last added runs outermost.
+# RateLimitMiddleware must be added first so CORS headers are always present,
+# even on 429 responses (otherwise browsers report NetworkError instead of 429).
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=config.rate_limit_rpm,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(config.cors_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-app.add_middleware(
-    RateLimitMiddleware,
-    requests_per_minute=config.rate_limit_rpm,
 )
 app.include_router(build_api_router(), prefix=config.api_prefix)
 

@@ -259,7 +259,7 @@ def _contains_phrase(question: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){escaped}(?!\w)", question) is not None
 
 
-def _find_metric(question: str, registry: SemanticRegistry) -> str:
+def _find_metric(question: str, registry: SemanticRegistry) -> str | None:
     """Return the best-matching metric name using longest-keyword-match scoring.
 
     Longest match wins so compound phrases like "average order value" (19 chars)
@@ -273,9 +273,7 @@ def _find_metric(question: str, registry: SemanticRegistry) -> str:
             if _contains_phrase(question, keyword) and len(keyword) > best_score:
                 best_score = len(keyword)
                 best_metric = metric_name
-    if best_metric:
-        return best_metric
-    return registry.schema.metrics[0].name if registry.schema.metrics else "order_count"
+    return best_metric
 
 
 def _find_dimensions(question: str, registry: SemanticRegistry) -> list[str]:
@@ -290,6 +288,14 @@ def _find_dimensions(question: str, registry: SemanticRegistry) -> list[str]:
     dimension_keywords = _build_dynamic_dimension_keywords(registry)
     matched: list[str] = []
     suppressed_words: set[str] = set()
+
+    # If the user asked for a compound grouping phrase like "seller state" and
+    # we don't have an exact semantic dimension for it, suppress falling back to
+    # the generic tail word ("state"), which would otherwise misroute.
+    stopword_heads = {"by", "per", "group", "grouped", "show"}
+    for compound in re.finditer(r"\b([a-z_]+)\s+(state|type|status|category|score|rate|method|code|name|city|country|region)\b", question):
+        if compound.group(1) not in stopword_heads:
+            suppressed_words.add(compound.group(2))
 
     # Pass 1: compound phrases
     for dimension_name, keywords in dimension_keywords:
@@ -354,6 +360,10 @@ class HeuristicIntentMapper:
         q = question.lower()
 
         metric = _find_metric(q, registry)
+        if metric is None:
+            raise IntentMappingError(
+                "Question could not be grounded in the active schema; no matching metric was found"
+            )
         dimensions = _find_dimensions(q, registry)
 
         # Post-filter: remove dimensions whose name phrase is subsumed by the
@@ -383,6 +393,13 @@ class HeuristicIntentMapper:
 
         start_date, end_date = _find_time_range(q)
         limit = rank_limit if rank_limit is not None else 100
+
+        if not has_time_trend and not dimensions and any(
+            marker in q for marker in (" by ", " per ", "group by", "grouped by", "breakdown by")
+        ):
+            raise IntentMappingError(
+                "Question references a grouping that could not be grounded in the active schema"
+            )
 
         return SemanticIntent(
             metric=metric,

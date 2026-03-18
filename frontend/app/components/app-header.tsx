@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Database, ChevronDown, Plus, Check } from "lucide-react";
 import { getMe } from "../lib/api";
 import { useConnection } from "../lib/connection-context";
 import type { User } from "../lib/types";
@@ -9,6 +10,7 @@ export function AppHeader() {
   const { mode, setMode, activeConnectionId, setActiveConnection, connections } = useConnection();
   const [user, setUser] = useState<User | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const activeConnection = connections.find((c) => c.connection_id === activeConnectionId);
 
@@ -16,111 +18,87 @@ export function AppHeader() {
     getMe().then(setUser).catch(() => {});
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    if (showDropdown) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDropdown]);
+
   return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 20px",
-        borderBottom: "1px solid var(--border, #e0e0e0)",
-        background: "var(--surface, #fff)",
-        marginBottom: 4,
-        fontSize: "0.9rem",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <span style={{ fontWeight: 700, fontSize: "1rem" }}>NL Query Tool</span>
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border/30 bg-background/80 px-5 py-3 backdrop-blur-sm">
+      {/* Left: logo + connection switcher */}
+      <div className="flex items-center gap-4">
+        <span
+          className="text-base font-bold text-foreground"
+          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          NL Query Tool
+        </span>
 
         {mode === "workspace" && activeConnection && (
-          <div style={{ position: "relative" }}>
+          <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 12px",
-                borderRadius: 6,
-                border: "1px solid var(--border, #e0e0e0)",
-                background: "var(--surface-dim, #f5f5f5)",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-              }}
+              className="flex items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3.5 py-1.5 text-sm font-medium text-foreground/80 backdrop-blur-sm transition-colors hover:border-border/60 hover:bg-background/80"
             >
-              <span style={{ fontWeight: 600 }}>{activeConnection.display_name}</span>
-              <span
-                style={{
-                  padding: "1px 6px",
-                  borderRadius: 4,
-                  fontSize: "0.72rem",
-                  background: "var(--accent, #2563eb)",
-                  color: "#fff",
-                }}
-              >
+              <Database className="h-3.5 w-3.5 text-primary" />
+              <span className="max-w-[160px] truncate">{activeConnection.display_name}</span>
+              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
                 {activeConnection.connector_type}
               </span>
-              <span style={{ fontSize: "0.7rem" }}>▼</span>
+              <ChevronDown className="h-3.5 w-3.5 text-foreground/40" />
             </button>
 
             {showDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  marginTop: 4,
-                  minWidth: 220,
-                  background: "var(--surface, #fff)",
-                  border: "1px solid var(--border, #e0e0e0)",
-                  borderRadius: 8,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  overflow: "hidden",
-                }}
-              >
-                {connections.map((conn) => (
-                  <button
-                    key={conn.connection_id}
-                    onClick={() => {
-                      setActiveConnection(conn.connection_id);
-                      setShowDropdown(false);
-                    }}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "10px 14px",
-                      border: "none",
-                      background: conn.connection_id === activeConnectionId ? "var(--surface-dim, #f0f0f0)" : "transparent",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{conn.display_name}</span>
-                    <span style={{ marginLeft: 6, color: "var(--muted)", fontSize: "0.75rem" }}>{conn.connector_type}</span>
-                  </button>
-                ))}
-                <div style={{ borderTop: "1px solid var(--border, #e0e0e0)" }}>
+              <div className="absolute left-0 top-full mt-2 min-w-[220px] overflow-hidden rounded-2xl border border-border/30 bg-background/90 shadow-xl backdrop-blur-sm">
+                <div className="p-1.5">
+                  {connections.map((conn) => (
+                    <button
+                      key={conn.connection_id}
+                      onClick={() => {
+                        if (!conn.query_ready) return;
+                        setActiveConnection(conn.connection_id);
+                        setShowDropdown(false);
+                      }}
+                      disabled={!conn.query_ready}
+                      className={[
+                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                        conn.query_ready
+                          ? "cursor-pointer hover:bg-primary/8"
+                          : "cursor-not-allowed opacity-50",
+                        conn.connection_id === activeConnectionId ? "bg-primary/10" : "",
+                      ].join(" ")}
+                    >
+                      <Database className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-foreground">
+                          {conn.display_name}
+                        </span>
+                        <span className="text-xs text-foreground/50">
+                          {conn.query_ready ? conn.connector_type : "setup required"}
+                        </span>
+                      </div>
+                      {conn.connection_id === activeConnectionId && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-border/20 p-1.5">
                   <button
                     onClick={() => {
                       setMode("picker");
                       setShowDropdown(false);
                     }}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "10px 14px",
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontSize: "0.85rem",
-                      color: "var(--accent, #2563eb)",
-                      fontWeight: 500,
-                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/8"
                   >
-                    + New Connection
+                    <Plus className="h-3.5 w-3.5" />
+                    New Connection
                   </button>
                 </div>
               </div>
@@ -129,24 +107,19 @@ export function AppHeader() {
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* Right: new connection + user */}
+      <div className="flex items-center gap-3">
         {mode === "workspace" && (
           <button
             onClick={() => setMode("picker")}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              border: "1px solid var(--border, #e0e0e0)",
-              background: "transparent",
-              cursor: "pointer",
-              fontSize: "0.85rem",
-            }}
+            className="flex items-center gap-1.5 rounded-full border border-border/40 px-3.5 py-1.5 text-sm font-medium text-foreground/70 transition-colors hover:border-border/60 hover:text-foreground"
           >
-            + New Connection
+            <Plus className="h-3.5 w-3.5" />
+            New Connection
           </button>
         )}
         {user?.email && (
-          <span style={{ color: "var(--muted)", fontSize: "0.82rem" }}>{user.email}</span>
+          <span className="text-sm text-foreground/50">{user.email}</span>
         )}
       </div>
     </header>

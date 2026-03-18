@@ -146,12 +146,22 @@ def get_upload_storage(request: Request) -> S3Storage | None:
     return getattr(request.app.state, "upload_storage", None)
 
 
+def get_schema_storage(request: Request):
+    return getattr(request.app.state, "schema_storage", None)
+
+
 def _get_runtime(request: Request) -> ConnectionRuntime:
     conn_id = _resolve_connection_id(request)
     try:
         return request.app.state.connection_service.get_runtime(conn_id)
-    except ConnectionResolutionError:
-        raise HTTPException(status_code=404, detail="CONNECTION_NOT_FOUND")
+    except ConnectionResolutionError as exc:
+        if exc.reason == "not found":
+            raise HTTPException(status_code=404, detail="CONNECTION_NOT_FOUND") from exc
+        if exc.reason == "archived":
+            raise HTTPException(status_code=410, detail="CONNECTION_ARCHIVED") from exc
+        if exc.reason == "no published schema — generate and publish a schema first":
+            raise HTTPException(status_code=409, detail="SCHEMA_NOT_PUBLISHED") from exc
+        raise HTTPException(status_code=400, detail="CONNECTION_NOT_READY") from exc
 
 
 def get_connector(request: Request) -> DataConnector:
