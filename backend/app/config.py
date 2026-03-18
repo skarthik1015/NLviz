@@ -69,8 +69,11 @@ class AppConfig:
     Only for local development — never set in deployed environments."""
 
     # ── LLM ──────────────────────────────────────────────────────────
-    anthropic_model: str
-    """Claude model ID used for intent mapping."""
+    llm_provider: str
+    """LLM provider for intent mapping: 'openai' | 'anthropic' | 'bedrock'."""
+
+    llm_model: str
+    """Model ID passed to the provider, e.g. 'gpt-4.1-mini' or 'claude-sonnet-4-6'."""
 
     # ── Class methods ────────────────────────────────────────────────
 
@@ -102,5 +105,6 @@ class AppConfig:
             environment=os.getenv("ENVIRONMENT", "development"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             dev_user_id=os.getenv("DEV_USER_ID") or None,
-            anthropic_model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            llm_provider=os.getenv("LLM_PROVIDER", "openai"),
+            llm_model=os.getenv("LLM_MODEL", "gpt-4.1-mini"),
         )

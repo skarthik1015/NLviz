@@ -46,6 +46,8 @@ jobs:
       - name: Run golden accuracy gate
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_PROVIDER: openai
+          LLM_MODEL: gpt-4.1-mini
         run: python tests/golden_tests.py
 
   frontend-checks:
@@ -127,16 +129,67 @@ jobs:
           docker push "$ECR_FRONTEND_URL:$IMAGE_TAG"
           docker push "$ECR_FRONTEND_URL:latest"
 
+      # ── Register new task definition revisions ───────────────────────
+      # Reads the template from infra/, substitutes the new image tag,
+      # and registers a new revision so Fargate picks up env-var changes too.
+      - name: Register backend task definition
+        id: register-backend-taskdef
+        env:
+          ECR_BACKEND_URL: ${{ secrets.ECR_BACKEND_URL }}
+          IMAGE_TAG: ${{ github.sha }}
+          OPENAI_API_KEY_ARN: ${{ secrets.OPENAI_API_KEY_ARN }}
+          SECRET_STORE_KEY_ARN: ${{ secrets.SECRET_STORE_KEY_ARN }}
+          TASK_ROLE_ARN: ${{ secrets.ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+          UPLOAD_BUCKET: ${{ secrets.UPLOAD_BUCKET }}
+          SCHEMA_BUCKET: ${{ secrets.SCHEMA_BUCKET }}
+        run: |
+          # Substitute placeholders in template and register
+          TASK_DEF=$(cat infra/task-definition-backend.json \
+            | sed "s|{{IMAGE}}|$ECR_BACKEND_URL:$IMAGE_TAG|g" \
+            | sed "s|{{OPENAI_API_KEY_ARN}}|$OPENAI_API_KEY_ARN|g" \
+            | sed "s|{{SECRET_STORE_KEY_ARN}}|$SECRET_STORE_KEY_ARN|g" \
+            | sed "s|{{TASK_ROLE_ARN}}|$TASK_ROLE_ARN|g" \
+            | sed "s|{{EXECUTION_ROLE_ARN}}|$EXECUTION_ROLE_ARN|g" \
+            | sed "s|{{UPLOAD_BUCKET}}|$UPLOAD_BUCKET|g" \
+            | sed "s|{{SCHEMA_BUCKET}}|$SCHEMA_BUCKET|g" \
+            | sed "s|{{AWS_REGION}}|$AWS_REGION|g")
+          REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
+            --cli-input-json file:///dev/stdin \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$REVISION" >> "$GITHUB_OUTPUT"
+
+      - name: Register frontend task definition
+        id: register-frontend-taskdef
+        env:
+          ECR_FRONTEND_URL: ${{ secrets.ECR_FRONTEND_URL }}
+          IMAGE_TAG: ${{ github.sha }}
+          TASK_ROLE_ARN: ${{ secrets.ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+        run: |
+          TASK_DEF=$(cat infra/task-definition-frontend.json \
+            | sed "s|{{IMAGE}}|$ECR_FRONTEND_URL:$IMAGE_TAG|g" \
+            | sed "s|{{TASK_ROLE_ARN}}|$TASK_ROLE_ARN|g" \
+            | sed "s|{{EXECUTION_ROLE_ARN}}|$EXECUTION_ROLE_ARN|g" \
+            | sed "s|{{AWS_REGION}}|$AWS_REGION|g")
+          REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
+            --cli-input-json file:///dev/stdin \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$REVISION" >> "$GITHUB_OUTPUT"
+
       # ── Deploy Backend ───────────────────────────────────────────────
       - name: Update backend ECS service
         env:
           CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
           SERVICE: ${{ secrets.ECS_BACKEND_SERVICE }}
+          TASK_DEF_ARN: ${{ steps.register-backend-taskdef.outputs.task_def_arn }}
         run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
             --service "$SERVICE" \
-            --force-new-deployment \
+            --task-definition "$TASK_DEF_ARN" \
             --query 'service.serviceName' \
             --output text
 
@@ -154,11 +207,12 @@ jobs:
         env:
           CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
           SERVICE: ${{ secrets.ECS_FRONTEND_SERVICE }}
+          TASK_DEF_ARN: ${{ steps.register-frontend-taskdef.outputs.task_def_arn }}
         run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
             --service "$SERVICE" \
-            --force-new-deployment \
+            --task-definition "$TASK_DEF_ARN" \
             --query 'service.serviceName' \
             --output text
 

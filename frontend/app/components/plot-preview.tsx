@@ -43,7 +43,7 @@ export function PlotPreview({ spec, queryId }: PlotPreviewProps) {
           }}
           config={{
             responsive: true,
-            displayModeBar: true,
+            displayModeBar: "hover",
             scrollZoom: true,
             displaylogo: false,
             modeBarButtonsToRemove: ["lasso2d", "select2d"],

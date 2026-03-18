@@ -1,0 +1,60 @@
+{
+  "family": "nl-query-tool-backend",
+  "taskRoleArn": "{{TASK_ROLE_ARN}}",
+  "executionRoleArn": "{{EXECUTION_ROLE_ARN}}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "{{IMAGE}}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "ENVIRONMENT",      "value": "production" },
+        { "name": "SECRET_BACKEND",   "value": "aws_secrets_manager" },
+        { "name": "SECRET_PREFIX",    "value": "nl-query-tool" },
+        { "name": "AWS_REGION",       "value": "{{AWS_REGION}}" },
+        { "name": "UPLOAD_BUCKET",    "value": "{{UPLOAD_BUCKET}}" },
+        { "name": "SCHEMA_BUCKET",    "value": "{{SCHEMA_BUCKET}}" },
+        { "name": "API_PREFIX",       "value": "/api" },
+        { "name": "RATE_LIMIT_RPM",   "value": "60" },
+        { "name": "AUTO_MIGRATE",     "value": "true" },
+        { "name": "LLM_PROVIDER",     "value": "openai" },
+        { "name": "LLM_MODEL",        "value": "gpt-4.1-mini" }
+      ],
+      "secrets": [
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "{{OPENAI_API_KEY_ARN}}"
+        },
+        {
+          "name": "SECRET_STORE_KEY",
+          "valueFrom": "{{SECRET_STORE_KEY_ARN}}"
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/healthz || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 15
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/nl-query-tool-backend",
+          "awslogs-region": "{{AWS_REGION}}",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

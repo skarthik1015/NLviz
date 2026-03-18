@@ -1,8 +1,19 @@
 """AWS Athena connector — queries data in S3 via the Athena SQL engine.
 
-Users provide their own AWS credentials (access key / secret) which are stored
-in the secret store. The Fargate task role is NOT used for data access, ensuring
-per-user isolation.
+Supports three auth modes via the ``auth_mode`` connection param:
+
+* ``"task_role"`` (default) — boto3 uses the ECS task role / EC2 instance
+  profile automatically. No credentials required. This is the recommended
+  mode when the app runs on Fargate in the same AWS account as the data.
+
+* ``"iam_keys"`` — user supplies ``aws_access_key_id`` and
+  ``aws_secret_access_key`` directly (long-term IAM user keys only;
+  temporary STS/ASIA keys also need ``aws_session_token``).
+
+* ``"role_arn"`` — cross-account IAM role assumption via STS.
+  The app's own task role calls ``sts:AssumeRole`` with the user-supplied
+  ``role_arn`` and optional ``external_id``.  **NOT YET IMPLEMENTED** —
+  skeleton is in place for the multi-tenant SaaS phase.
 """
 from __future__ import annotations
 
@@ -40,8 +51,27 @@ class AthenaConnector(DataConnector):
         self._pyathena = pyathena
         self._PandasCursor = PandasCursor
 
-        self._aws_access_key_id: str | None = connection_params.get("aws_access_key_id")
-        self._aws_secret_access_key: str | None = connection_params.get("aws_secret_access_key")
+        auth_mode: str = connection_params.get("auth_mode", "task_role")
+
+        if auth_mode == "iam_keys":
+            self._aws_access_key_id: str | None = connection_params.get("aws_access_key_id")
+            self._aws_secret_access_key: str | None = connection_params.get("aws_secret_access_key")
+            self._aws_session_token: str | None = connection_params.get("aws_session_token")
+        elif auth_mode == "role_arn":
+            # TODO (Option 1 — multi-tenant): call sts.assume_role() here and
+            # store the temporary credentials. See CLAUDE.md for design notes.
+            raise NotImplementedError(
+                "Cross-account IAM role auth is not yet implemented. "
+                "Use auth_mode='task_role' (Fargate) or 'iam_keys'."
+            )
+        else:
+            # task_role: boto3 picks up credentials from the ECS task role,
+            # EC2 instance profile, or any other ambient credential source.
+            self._aws_access_key_id = None
+            self._aws_secret_access_key = None
+            self._aws_session_token = None
+
+        self._auth_mode = auth_mode
         self._region_name: str = connection_params.get("region_name", "us-east-1")
         self._s3_staging_dir: str = connection_params["s3_staging_dir"]
         self._work_group: str = connection_params.get("work_group", "primary")
@@ -158,6 +188,10 @@ class AthenaConnector(DataConnector):
         if self._aws_access_key_id and self._aws_secret_access_key:
             kwargs["aws_access_key_id"] = self._aws_access_key_id
             kwargs["aws_secret_access_key"] = self._aws_secret_access_key
+            if self._aws_session_token:
+                kwargs["aws_session_token"] = self._aws_session_token
+        # task_role: no credentials added → boto3 uses the ambient credential
+        # chain (ECS task role, instance profile, ~/.aws/credentials, etc.)
         return kwargs
 
     def _quote(self, identifier: str) -> str:

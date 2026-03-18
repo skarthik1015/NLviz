@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState, type FormEvent } from "react";
+import { Table2, Layers } from "lucide-react";
 
 import { getSchema, sendChatQuestion } from "../lib/api";
 import { useConnection } from "../lib/connection-context";
@@ -9,9 +10,100 @@ import { ChatResponse, SchemaResponse } from "../lib/types";
 import { PlotPreview } from "./plot-preview";
 import { ResultsTable } from "./results-table";
 
+function TableBrowserPanel({ schema }: { schema: SchemaResponse }) {
+  const tableNames = Object.keys(schema.tables);
+  const [activeTable, setActiveTable] = useState<string>(tableNames[0] ?? "");
+  const columns = activeTable ? (schema.tables[activeTable] ?? []) : [];
+
+  if (tableNames.length === 0) return null;
+
+  return (
+    <div className="data-browser-panel">
+      {/* Table tabs */}
+      <div className="db-tab-strip">
+        {tableNames.map((tbl) => (
+          <button
+            key={tbl}
+            type="button"
+            onClick={() => setActiveTable(tbl)}
+            className={`db-tab${activeTable === tbl ? " active" : ""}`}
+          >
+            {tbl}
+            {schema.row_counts[tbl] != null && (
+              <span className="db-tab-badge">{schema.row_counts[tbl].toLocaleString()}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Column table */}
+      {columns.length > 0 && (
+        <div className="db-col-table-wrap">
+          <table className="db-col-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Sample values</th>
+              </tr>
+            </thead>
+            <tbody>
+              {columns.map((col, i) => {
+                const name = (col.name ?? col.column_name ?? "?") as string;
+                const type = (col.type ?? col.data_type ?? "") as string;
+                const samples = (col.sample_values ?? []) as unknown[];
+                return (
+                  <tr key={`${name}-${i}`}>
+                    <td className="db-col-name">{name}</td>
+                    <td className="db-col-type">{type}</td>
+                    <td className="db-col-samples">
+                      {samples
+                        .slice(0, 4)
+                        .map((s) => String(s ?? ""))
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SchemaViewerPanel({ schema }: { schema: SchemaResponse }) {
+  const sections: Array<{ label: string; items: Array<{ name: string; display_name: string }> }> = [
+    { label: "Metrics", items: schema.metrics },
+    { label: "Dimensions", items: schema.dimensions },
+    { label: "Time Dimensions", items: schema.time_dimensions },
+  ];
+
+  return (
+    <div className="data-browser-panel schema-viewer-panel">
+      {sections.map(({ label, items }) =>
+        items.length === 0 ? null : (
+          <div key={label} className="schema-section">
+            <div className="schema-section-label">{label}</div>
+            <div className="schema-pills">
+              {items.map((item) => (
+                <span key={item.name} className="schema-pill">
+                  {item.display_name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 function buildExamples(schema: SchemaResponse | null): string[] {
   if (!schema || schema.metrics.length === 0) {
-    return ["Ask a question about your data"];
+    return [];
   }
 
   const metric = schema.metrics[0]?.display_name ?? schema.metrics[0]?.name ?? "value";
@@ -52,9 +144,20 @@ export function ChatWorkbench() {
   const [unsafeWarning, setUnsafeWarning] = useState<string | null>(null);
   const [allowUnsafeSubmit, setAllowUnsafeSubmit] = useState(false);
   const [schema, setSchema] = useState<SchemaResponse | null>(null);
+  const [showTableBrowser, setShowTableBrowser] = useState(false);
+  const [showSchemaViewer, setShowSchemaViewer] = useState(false);
   const activeConnection = connections.find((conn) => conn.connection_id === activeConnectionId);
   const canQuery = activeConnection?.query_ready ?? activeConnectionId == null;
   const examples = buildExamples(schema);
+
+  // Clear stale results when switching connections
+  useEffect(() => {
+    setResult(null);
+    setError(null);
+    setQuestion("");
+    setShowTableBrowser(false);
+    setShowSchemaViewer(false);
+  }, [activeConnectionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +169,10 @@ export function ChatWorkbench() {
       .then((nextSchema) => {
         if (!cancelled) {
           setSchema(nextSchema);
-          setQuestion((current: string) => (current.trim() ? current : buildExamples(nextSchema)[0]));
+          setQuestion((current: string) => {
+            const first = buildExamples(nextSchema)[0];
+            return current.trim() ? current : (first ?? "");
+          });
         }
       })
       .catch(() => {
@@ -158,6 +264,34 @@ export function ChatWorkbench() {
               </motion.button>
             ))}
           </div>
+
+          {/* Data browser controls */}
+          {schema && (
+            <div className="data-browser-controls">
+              <button
+                type="button"
+                className={`data-browser-btn${showTableBrowser ? " active" : ""}`}
+                onClick={() => setShowTableBrowser((v) => !v)}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                Browse Tables
+              </button>
+              <button
+                type="button"
+                className={`data-browser-btn${showSchemaViewer ? " active" : ""}`}
+                onClick={() => setShowSchemaViewer((v) => !v)}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                View Schema
+              </button>
+            </div>
+          )}
+
+          {/* Table browser panel */}
+          {showTableBrowser && schema && <TableBrowserPanel schema={schema} />}
+
+          {/* Schema viewer panel */}
+          {showSchemaViewer && schema && <SchemaViewerPanel schema={schema} />}
 
           {/* Toolbar */}
           <div className="toolbar">
