@@ -12,6 +12,18 @@ from .base import DataConnector, SchemaContext
 logger = logging.getLogger(__name__)
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _safe_sample(value: Any) -> Any:
+    """Convert psycopg2 native types to JSON-serializable primitives."""
+    if value is None:
+        return None
+    if isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (memoryview, bytes, bytearray)):
+        return None  # skip binary data in sample preview
+    # datetime, date, time, Decimal, UUID, etc. → string
+    return str(value)
 _QUERY_TIMEOUT_MS = int(os.environ.get("QUERY_TIMEOUT_MS", "30000"))
 
 
@@ -186,7 +198,7 @@ class PostgresConnector(DataConnector):
                         f"SELECT DISTINCT {safe_col} FROM {safe_table} "
                         f"WHERE {safe_col} IS NOT NULL LIMIT 5"
                     )
-                    samples = [row[0] for row in cur.fetchall()]
+                    samples = [_safe_sample(row[0]) for row in cur.fetchall()]
                 except Exception:
                     samples = []
                 columns.append({

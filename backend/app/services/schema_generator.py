@@ -37,7 +37,7 @@ Rules:
 - For ID columns on primary entities: propose COUNT_DISTINCT metrics.
 - For status/flag columns with clear good/bad states: consider RATIO metrics.
 - Dimensions: pick categorical columns with distinct value count < 500. Assign cardinality: low (< 20), medium (< 500), high (>= 500).
-- Time dimensions: pick DATE/TIMESTAMP columns. Set default_granularity to "month".
+- Time dimensions: ONLY pick columns with actual DATE or TIMESTAMP data types. Do NOT use integer year columns (INT/BIGINT named 'year') as time dimensions — those belong as regular dimensions instead. Set default_granularity to "month".
 - Joins: use the provided FK/inferred relationships. Default type = "LEFT".
 - sql_expression: reference actual column names EXACTLY as they appear in the schema. Use table aliases in required_tables (e.g. "payments p") and reference via alias (e.g. "p.amount").
 - required_tables: list ALL tables needed for the metric/dimension, including join intermediaries.
