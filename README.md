@@ -1,128 +1,297 @@
 # NL Query Tool
 
-Natural-language analytics MVP with a deterministic semantic SQL compiler.
+A natural-language analytics platform that converts plain-English questions into SQL, executes them against your database, and returns tabular results, charts, and AI-generated explanations — without writing a single line of SQL.
 
-The current repo contains:
-- a FastAPI backend that maps a question to `SemanticIntent`, compiles SQL from a governed semantic YAML, validates SQL safety, and executes against DuckDB
-- a LangGraph pipeline that orchestrates `intent_mapper -> sql_builder -> executor -> validator -> chart_selector -> explainer`
-- a minimal Next.js frontend that calls `/chat`, renders a results table, and shows a derived plot spec
-- deterministic backend tests, including a 20-case golden suite with an 80% accuracy gate and SQL safety coverage
+**Core design principle:** The LLM never writes SQL. It maps natural language to a `SemanticIntent` (metric + dimensions + filters). SQL is compiled deterministically from a governed semantic YAML schema, eliminating hallucinations and making every query auditable.
 
-## Current Status
+---
 
-Implemented now:
-- DuckDB-backed backend MVP
-- Semantic layer loader and deterministic SQL builder
-- SQL safety validation with `sqlglot`
-- LangGraph execution pipeline with validation, chart selection, and explanation
-- Minimal frontend chat page
-- CI test workflow for backend and frontend checks
+## Quick Start (Local Dev)
 
-Not implemented yet:
-- persistent query history / feedback storage
-- infrastructure and deployment workflows
-
-## Repo Structure
-
-```text
-nl-query-tool/
-|- backend/              FastAPI app, semantic compiler, tests, Dockerfile
-|- frontend/             Next.js app, minimal chat workbench, Dockerfile
-|- docs/                 Current architecture and repo guidance
-|- .github/workflows/    CI checks
-`- docker-compose.yml    Local multi-container runtime
-```
-
-## Prerequisites
-
-For local development without Docker:
-- Python 3.11
-- Node.js 20+
-- npm 10+
-
-For containerized development:
-- Docker Desktop with Compose support
-
-## Backend Local Run
+**Prerequisites:** Python 3.11+, Node.js 20+, npm 10+
 
 ```bash
+# 1. Backend
 cd backend
-python -m venv .venv
-.venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python seed.py
+python seed.py                                        # load sample DuckDB ecommerce data (run once)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
 
-API endpoints:
-- `GET /healthz`
-- `GET /schema`
-- `POST /chat`
-- `POST /feedback`
-
-## Frontend Local Run
-
-```bash
+# 2. Frontend (new terminal)
 cd frontend
 npm install
-set NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+export NEXT_PUBLIC_API_BASE_URL=http://localhost:8000  # Windows: set NEXT_PUBLIC_API_BASE_URL=...
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. The default local connection uses the bundled Olist Brazilian e-commerce DuckDB dataset — no external database needed.
 
-## Docker Run
+---
 
-The compose setup expects the source dataset CSVs in `backend/data/raw/`.
-
-1. Start the app (first boot auto-seeds DuckDB if missing):
+## Docker Start
 
 ```bash
 docker compose up --build
 ```
 
-Services:
-- frontend: `http://localhost:3000`
-- backend: `http://localhost:8000`
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
 
-## Tests
+The compose setup auto-seeds DuckDB on first boot via `bootstrap_start.py`.
 
-Backend:
+---
 
-```bash
-cd backend
-pytest
+## Architecture
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15 · React · TypeScript · Tailwind CSS · Plotly |
+| Backend API | FastAPI · Python 3.12 · Uvicorn |
+| Query Pipeline | LangGraph (directed agent graph) |
+| LLM | OpenAI GPT-4.1-mini (default) · Claude Sonnet (alt) |
+| Structured LLM Output | `instructor` + Pydantic |
+| Database Connectors | DuckDB · PostgreSQL (psycopg2) · AWS Athena (pyathena) |
+| File Uploads | S3 (production) · local DuckDB (dev) |
+| Secret Storage | AWS Secrets Manager (production) · Fernet-encrypted files (dev) |
+| Connection Metadata | PostgreSQL RDS (production) · JSONL flat files (dev) |
+| Schema Storage | S3 (production) · local filesystem (dev) |
+| Containers | AWS ECS Fargate |
+| CI/CD | GitHub Actions → ECR → ECS force-redeploy |
+
+### LangGraph Query Pipeline
+
+```
+User Question
+     │
+     ▼
+┌─────────────────┐
+│  Intent Mapper  │  NL → SemanticIntent via LLM (with heuristic fallback)
+└────────┬────────┘  e.g. { metric: "total_revenue", dimensions: ["category"],
+         │                  time_dimension: "order_date", granularity: "month" }
+         ▼
+┌─────────────────┐
+│   SQL Builder   │  Deterministic compile: SemanticIntent + YAML schema → SQL
+│   (no LLM)      │  Handles JOINs, DATE_TRUNC, filters, ORDER BY, LIMIT
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Executor     │  Runs SQL against the live database connector
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐       ┌─────────────────┐
+│    Validator    │──────▶│   SQL Builder   │  retry without date filter
+│  (empty/too big)│ retry │   (2nd attempt) │  or with tighter LIMIT
+└────────┬────────┘       └─────────────────┘
+         │ continue
+         ▼
+┌─────────────────┐
+│  Chart Selector │  Picks bar / line / scatter / pie based on data shape
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Explainer    │  LLM generates 2–3 sentence plain-English summary
+└────────┬────────┘
+         │
+         ▼
+    ChatResponse  (rows + chart spec + explanation + trace)
 ```
 
-Frontend:
+Pipeline defined in `backend/app/agent/graph.py`. State schema in `backend/app/agent/state.py`.
 
-```bash
-cd frontend
-npm install
-npm run typecheck
-npm run build
+### Semantic Layer
+
+Each connection has a versioned semantic schema (YAML) that maps business concepts to physical SQL:
+
+- **Metrics** — named measures with SQL expressions (e.g. `SUM(o.payment_value)`)
+- **Dimensions** — categorical grouping columns with cardinality hints
+- **Time Dimensions** — DATE/TIMESTAMP columns with granularity settings
+- **Join Paths** — explicit table relationship definitions
+
+Schemas are auto-generated by the LLM from physical schema introspection and validated by executing probe queries. Stored in `backend/app/semantic/schemas/` (local) or S3 (production).
+
+### SQL Safety
+
+Every query is validated via `backend/app/security/sql_safety.py` before execution:
+- Only `SELECT` statements allowed (enforced via `sqlglot` AST parsing — not string matching)
+- Table allowlist per connection
+- Column denylist support for PII fields
+- Integer `LIMIT` enforced to prevent unbounded scans
+
+---
+
+## Connecting Your Database
+
+### Supported Connectors
+
+| Connector | Status | What the user provides |
+|-----------|--------|------------------------|
+| **CSV / Parquet Upload** | Full | File upload (up to 100 MB) |
+| **PostgreSQL** | Full | Host, port, database, username, password, schema |
+| **AWS Athena / S3** | Full (`task_role` and `iam_keys` auth modes) | S3 output location, Glue database, AWS region, auth credentials |
+| **Redshift** | Stub — future phase | — |
+
+### Connection Workflow
+
 ```
+1. Test Connection   → verifies credentials + returns live table list
+2. Generate Schema   → async LLM job: introspect DB → generate semantic YAML → validate
+3. Poll Job Status   → GET /api/connections/{id}/jobs/{job_id}
+4. Publish Schema    → activates the connection for querying (requires confidence ≥ 30%)
+5. Ask Questions     → POST /api/chat with natural-language question
+```
+
+---
+
+## API Reference
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/healthz` | Health check |
+| `POST` | `/api/chat` | Execute a natural-language query |
+| `GET` | `/api/schema` | Return active semantic schema context |
+| `POST` | `/api/feedback` | Store thumbs up/down rating |
+| `GET` | `/api/connections` | List user's connections |
+| `POST` | `/api/connections/test` | Test connection + preview tables |
+| `POST` | `/api/connections` | Create a named connection (save credentials) |
+| `POST` | `/api/connections/upload` | Upload CSV / Parquet file |
+| `POST` | `/api/connections/{id}/generate` | Start async schema generation job |
+| `GET` | `/api/connections/{id}/jobs/{job_id}` | Poll generation job status |
+| `POST` | `/api/connections/{id}/publish` | Publish a validated schema version |
+| `DELETE` | `/api/connections/{id}` | Delete connection and all artifacts |
+
+---
 
 ## Environment Variables
 
-Backend:
-- `CORS_ALLOW_ORIGINS` comma-separated list, defaults to `http://localhost:3000,http://127.0.0.1:3000`
-- `DEV_USER_ID` optional local-development bypass for ALB/Cognito auth; set this to a stable user id when testing personal database connections locally
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | — | Required for LLM intent mapping (or use `ANTHROPIC_API_KEY`) |
+| `LLM_PROVIDER` | `openai` | LLM provider: `openai` \| `anthropic` |
+| `LLM_MODEL` | `gpt-4.1-mini` | Model ID passed to the provider |
+| `SECRET_BACKEND` | `local` | `local` (dev) or `aws_secrets_manager` (prod) |
+| `SECRET_STORE_KEY` | auto-generated | Fernet key for local credential encryption — set a stable value to persist secrets across restarts |
+| `DATABASE_URL` | — | PostgreSQL DSN for RDS connection metadata (omit to use JSONL local store) |
+| `UPLOAD_BUCKET` | — | S3 bucket for CSV/Parquet uploads |
+| `SCHEMA_BUCKET` | — | S3 bucket for generated semantic YAML schemas |
+| `API_PREFIX` | `` | Set to `/api` in production (ALB routes `/api/*` to backend) |
+| `CORS_ALLOW_ORIGINS` | `http://localhost:3000,...` | Comma-separated CORS allowlist |
+| `RATE_LIMIT_RPM` | `30` | Requests per minute per user |
+| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Frontend → backend URL |
+| `DEV_USER_ID` | — | **Development bypass only** — see Authentication note below |
 
-Frontend:
-- `NEXT_PUBLIC_API_BASE_URL` defaults to `http://localhost:8000`
+---
 
-## Deploy Notes
+## Authentication
 
-For the current dev setup:
-- run `terraform apply` in `infrastructure/terraform/environments/dev` to provision the ALB, ECS services, RDS, and S3-backed connection workflow
-- access the app over the ALB DNS name output by Terraform; a custom domain is not required
-- the hosted backend uses `backend_dev_user_id` from [terraform.tfvars](c:/Lace/NLviz/nl-query-tool/infrastructure/terraform/environments/dev/terraform.tfvars) as a dev auth bypass until Cognito is re-enabled
-- set `DEV_USER_ID=<your-id>` locally when developing without the ALB/Cognito flow
+The backend reads user identity from the `x-amzn-oidc-identity` header injected by AWS ALB after Cognito authentication.
 
-## Notes
+**During development,** `DEV_USER_ID` is set as an environment variable (e.g. `DEV_USER_ID=dev`) to bypass the ALB/Cognito flow entirely. All requests are treated as the same user. This was used throughout the development and staging phase for local testing and Fargate deploys before Cognito was configured.
 
-- The golden suite is deterministic and validates semantic compilation and orchestration behavior; keep cases aligned with supported intent patterns.
-- The intent mapper runs LLM-first with heuristic fallback for resiliency.
-- The frontend shows `Invalid/ Unsafe Query` for blocked or invalid requests.
-- The architecture document at `docs/ARCHITECTURE.md` describes the current implemented system and the next planned increments.
+**This bypass must be removed before exposing the tool to real users.** It is currently set in `infra/task-definition-backend.json`. See the Production Readiness section below for the Cognito setup steps.
+
+---
+
+## Running Tests
+
+```bash
+# Backend — full suite
+cd backend && pytest
+
+# Backend — golden accuracy suite (80% gate: 20 pinned question→intent→SQL cases)
+pytest tests/golden_tests.py
+
+# Backend — specific file
+pytest tests/test_sql_builder.py
+
+# Frontend — typecheck + build
+cd frontend && npm run typecheck && npm run build
+```
+
+---
+
+## Deployment
+
+The app runs on AWS ECS Fargate with two containers (backend + frontend) behind an Application Load Balancer.
+
+**CI/CD pipeline:** push to `main` → GitHub Actions runs tests → builds Docker images → pushes to ECR → force-redeploys ECS services.
+
+**One-time AWS setup** (ECR repos, S3 buckets, IAM roles, Secrets Manager entries, CloudWatch log groups, GitHub secrets) is documented in [infra/README.md](infra/README.md).
+
+Key production environment variables are injected via the ECS task definition, with secrets sourced from AWS Secrets Manager.
+
+---
+
+## Production Readiness — Future Work
+
+This section is a guide for whoever takes this tool to production. The core query engine is solid and well-tested. The items below are the gaps that need to be addressed before exposing it to real users at scale.
+
+### 1. Authentication — Blocking
+
+**Problem:** `DEV_USER_ID` is currently set in `infra/task-definition-backend.json`, meaning all Fargate requests are treated as a single shared user. Anyone who reaches the ALB can see and query all connections.
+
+**Fix (AWS Cognito):**
+1. Create a Cognito User Pool: `aws cognito-idp create-user-pool --pool-name nl-query-tool`
+2. Create a Cognito App Client (confidential, Authorization Code grant, scope: `openid email`)
+3. Configure ALB OIDC authentication action on the HTTP/HTTPS listener pointing at Cognito
+4. Remove `DEV_USER_ID` from `infra/task-definition-backend.json`
+5. The ALB will redirect unauthenticated requests to the Cognito Hosted UI and inject `x-amzn-oidc-identity` on authenticated requests — the backend already reads this header in `backend/app/security/auth.py`
+
+### 2. Tenant Isolation — Blocking
+
+**Problem:** The `X-Connection-Id` header controls which database is queried, but the runtime resolution path in `backend/app/dependencies.py` does not verify that the requesting user owns that connection. A user who knows another connection's UUID can query it.
+
+**Fix:** Add an ownership check in `get_runtime()` (`backend/app/dependencies.py`) similar to the `_verify_owner()` check already present in `backend/app/api/routes/connections.py`.
+
+### 3. Rate Limiting — High Priority
+
+**Problem:** The rate-limit middleware in `backend/app/rate_limit.py` matches the path `/chat`, but production sets `API_PREFIX=/api`, making the real path `/api/chat`. The middleware never fires in production.
+
+**Fix:** Update the middleware to strip the API prefix before matching, or match against the path suffix. One-line change in `backend/app/rate_limit.py`.
+
+### 4. Schema Generation Job Persistence — High Priority
+
+**Problem:** `GenerationJobManager` (`backend/app/services/generation_job_manager.py`) stores jobs in process memory. If the Fargate task restarts mid-job or if the service scales to multiple tasks, polling returns 404.
+
+**Fix:** Back the job store with Redis (ElastiCache) or SQS. This is also the prerequisite for running `--workers > 1` on the backend.
+
+### 5. Athena Cross-Account Role (`role_arn` mode) — Medium Priority
+
+**Problem:** `role_arn` auth mode in `backend/app/connectors/athena_connector.py` raises `NotImplementedError`. This is the mode needed for multi-tenant SaaS where users are in different AWS accounts. The frontend form fields are already present but `disabled` in `frontend/app/components/connector-forms/athena-form.tsx`.
+
+**Fix:** Implement `sts:AssumeRole` call in `AthenaConnector.__init__` when `auth_mode == "role_arn"`. The full design spec (including trust policy and credential refresh) is in `CLAUDE.md` under "Option 1 — Cross-Account IAM Role". Remove the `disabled` prop from the frontend form once implemented.
+
+### 6. HTTPS Enforcement — Medium Priority
+
+**Problem:** Hardcoded `http://` URLs exist in the deploy workflow, Terraform modules, CORS config, and smoke tests. These will break when HTTPS is enforced on the ALB.
+
+**Fix:** Audit `.github/workflows/deploy.yml`, `infrastructure/terraform/modules/alb/`, `infrastructure/terraform/modules/ecs/`, and `infrastructure/terraform/modules/s3/` for `http://` assumptions and update to `https://`.
+
+### 7. Deployment Control Plane Consolidation — Medium Priority
+
+**Problem:** There are two competing deployment mechanisms: Terraform (`infrastructure/terraform/`) and GitHub Actions using `sed` to mutate JSON task definitions in `infra/`. These can drift and make rollbacks harder than necessary.
+
+**Fix:** Pick one. Either let Terraform fully own ECS task definitions and rollout, or remove Terraform and let GitHub Actions be the sole control plane. Do not maintain both.
+
+### 8. Redshift Connector — Low Priority
+
+**Status:** `backend/app/connectors/redshift_connector.py` is a stub — all methods raise `NotImplementedError`. The connector is registered but not exposed in the UI.
+
+**Fix:** Implement using `redshift-connector` or `psycopg2` (Redshift is Postgres wire-compatible). Add Redshift as an option in the frontend connector forms once done.
+
+### 9. Frontend Test Suite — Low Priority
+
+**Problem:** The frontend has no behavioral tests. Only typecheck and build are run in CI. Critical flows (connection onboarding, schema generation polling, error states) are untested.
+
+**Fix:** Add Playwright or Vitest tests for the main user flows: connect → generate → publish → query, connection switching, and error handling.
+
+### 10. Horizontal Scaling
+
+**Problem:** The backend is constrained to `--workers 1` due to the in-memory `GenerationJobManager`. The Terraform ECS module already supports multiple tasks, but running them would break job polling.
+
+**Fix:** Complete item 4 (job persistence) first, then increase `--workers` or desired ECS task count.

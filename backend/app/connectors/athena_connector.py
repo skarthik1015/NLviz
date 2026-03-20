@@ -58,8 +58,7 @@ class AthenaConnector(DataConnector):
             self._aws_secret_access_key: str | None = connection_params.get("aws_secret_access_key")
             self._aws_session_token: str | None = connection_params.get("aws_session_token")
         elif auth_mode == "role_arn":
-            # TODO (Option 1 — multi-tenant): call sts.assume_role() here and
-            # store the temporary credentials. See CLAUDE.md for design notes.
+            # TODO (Option 1 — multi-tenant): call sts.assume_role() here
             raise NotImplementedError(
                 "Cross-account IAM role auth is not yet implemented. "
                 "Use auth_mode='task_role' (Fargate) or 'iam_keys'."

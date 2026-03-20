@@ -1,3 +1,6 @@
+# TODO (future phase): Implement Redshift connector.
+# Requires: redshift-connector or psycopg2 pointed at a Redshift endpoint.
+# All methods currently raise NotImplementedError — do not expose via UI until implemented.
 from .base import DataConnector, SchemaContext
 
 

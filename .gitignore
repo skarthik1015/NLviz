@@ -11,9 +11,7 @@ backend/data/schema_versions.jsonl
 backend/data/audit.jsonl
 .claude/
 Claude.md
-MVP_CODEBASE_WALKTHROUGH.md
-backend/data/README.md
-ENTERPRISE_READINESS_REVIEW.md
+
 
 # ---- Python ----
 __pycache__/

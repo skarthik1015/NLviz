@@ -16,7 +16,6 @@ CONNECTOR_REGISTRY = {
     "duckdb": DuckDBConnector,
     "postgres": PostgresConnector,
     "redshift": RedshiftConnector,
-    "snowflake": None,
     "athena": AthenaConnector,
 }
 
