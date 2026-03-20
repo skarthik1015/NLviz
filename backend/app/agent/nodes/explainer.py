@@ -51,6 +51,7 @@ def _template_explanation(intent, row_count: int) -> str:
 
 def _llm_explanation(question: str, intent, row_count: int, rows: list, config: "IntentMapperConfig") -> str:
     try:
+        import json as _json
         from app.services.intent_mapper import _build_completion_client  # deferred to avoid circular import
         client = _build_completion_client(config.provider)
         top_rows = rows[:3]
@@ -65,16 +66,18 @@ def _llm_explanation(question: str, intent, row_count: int, rows: list, config: 
             f"Metric: {intent.metric if intent else 'unknown'}\n"
             f"Row count: {row_count}\n"
             f"Sample results: {sample}\n"
-            "In 2-3 sentences, explain what this data shows. Be specific and concise."
+            'In 2-3 sentences, explain what this data shows. Return JSON: {"explanation": "your text here"}'
         )
-        return client.complete_json(
+        raw = client.complete_json(
             system_prompt=(
-                "You analyse business data query results and provide clear, concise plain-text summaries. "
-                "Output plain text only — no markdown, no bullet points."
+                'You analyse business data query results and provide clear, concise summaries. '
+                'Always respond with valid JSON in the format: {"explanation": "your plain text summary"}'
             ),
             user_prompt=user_prompt,
             model=config.model,
             timeout_ms=config.timeout_ms,
         )
+        parsed = _json.loads(raw)
+        return str(parsed.get("explanation", "")).strip() or _template_explanation(intent, row_count)
     except Exception:
         return _template_explanation(intent, row_count)

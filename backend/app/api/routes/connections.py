@@ -192,8 +192,20 @@ async def upload_file(
         if s3 is not None:
             # ── S3 path: upload raw file; DuckDB reads via httpfs ───────
             s3_key = f"uploads/{connection_id}/{file.filename}"
-            with open(tmp_path, "rb") as fobj:
-                db_path_str = await asyncio.to_thread(s3.upload_fileobj, s3_key, fobj)
+            try:
+                with open(tmp_path, "rb") as fobj:
+                    db_path_str = await asyncio.to_thread(s3.upload_fileobj, s3_key, fobj)
+            except Exception as exc:
+                # Surface boto3 / S3 errors as a 502 with the original message
+                # (e.g. AccessDenied, NoSuchBucket) rather than an opaque 500.
+                import botocore.exceptions as _botocore_exc
+                if isinstance(exc, _botocore_exc.ClientError):
+                    code = exc.response.get("Error", {}).get("Code", "Unknown")
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"S3 upload failed ({code}): {exc.response['Error'].get('Message', str(exc))}",
+                    ) from exc
+                raise
         else:
             # ── Local path: import into a local .duckdb file ────────────
             _UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -261,6 +273,21 @@ async def generate_schema(
     except Exception:
         logger.exception("Failed to build connector for generation job on connection %s", connection_id)
         raise HTTPException(status_code=500, detail="SCHEMA_GENERATION_FAILED")
+
+    # Pre-flight: verify the LLM API key is available before starting the async
+    # job so the user gets a clear 503 immediately rather than a cryptic job failure.
+    import os as _os
+    from app.services.intent_mapper import IntentMapperConfig as _IMConfig
+    _cfg = _IMConfig.from_env()
+    _key_var = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}.get(_cfg.provider or "", "")
+    if _key_var and not _os.environ.get(_key_var):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"LLM API key not configured: {_key_var} is missing. "
+                "Check that the Secrets Manager secret is created and the task definition ARN is set."
+            ),
+        )
 
     audit.log("schema.generate_start", connection_id=connection_id)
 

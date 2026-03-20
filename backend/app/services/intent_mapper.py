@@ -384,8 +384,22 @@ class HeuristicIntentMapper:
             if registry.schema.time_dimensions
             else None
         )
-        time_dimension = default_time_dim if has_time_trend else None
-        order_by: str = "time_asc" if has_time_trend else "metric_desc"
+        # Only set time_dimension when there is actually a time dimension available;
+        # otherwise fall back to using year/date as a regular grouping dimension.
+        time_dimension = default_time_dim if (has_time_trend and default_time_dim) else None
+        order_by: str = "time_asc" if (has_time_trend and default_time_dim) else "metric_desc"
+
+        # If user asked for a time trend but no time_dimension is in the schema,
+        # try to find a year/date dimension and add it as a regular grouping dimension.
+        if has_time_trend and not default_time_dim:
+            year_dims = [
+                d.name for d in registry.schema.dimensions
+                if any(kw in d.name.lower() for kw in ("year", "date", "month", "period"))
+            ]
+            for yd in year_dims:
+                if yd not in dimensions:
+                    dimensions.append(yd)
+                    break
 
         rank_limit, rank_direction = _find_rank_limit(q)
         if not has_time_trend and rank_direction in {"bottom", "first"}:
