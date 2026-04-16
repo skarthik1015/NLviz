@@ -1,0 +1,41 @@
+pipeline:
+  name: nl-query-tool-provision
+  organization: karthik-reddy-sanvelly
+  team: testing
+
+  providers:
+    github:
+      repository: skarthik1015/NLviz
+      permissions: [read, clone]
+    aws:
+      role_alias: deploy-role 
+      regions: [us-east-1]
+
+  artifacts:
+    - name: source
+
+  tasks:
+    - name: provision
+      image: hashicorp/terraform:1.6
+      script: |
+        set -e
+        echo "=== Checking AWS Credentials ==="
+        apk add --no-cache aws-cli git
+        aws sts get-caller-identity
+
+        cd /workspace/source/repo/.lace
+
+        echo "=== Terraform Init ==="
+        terraform init
+
+        echo "=== Terraform Plan ==="
+        terraform plan -out=tfplan
+
+        echo "=== Terraform Apply ==="
+        terraform apply -auto-approve tfplan
+
+        echo ""
+        echo "=== Outputs ==="
+        terraform output
+      workspaces:
+        - name: source
