@@ -1,0 +1,32 @@
+{
+    "sha256":  {
+                   "app/services/sql_checks.py":  "4c587944f350e67efdd477b3be069236bb5a3aec1ee740e2aa1c4689a0191dda",
+                   "app/services/definitions.py":  "54fd306e651ecbb989af042e3e2921e3b251c9a837758633abf18f8864b9ec5d",
+                   "app/services/interpretation.py":  "e2c6b3bef319955742847a2a2cbf4bb43dd66d43389ae2458feb7f04a32d7c1e",
+                   "app/agent/nodes/sql_primary.py":  "3236d0bf99340ed3b879fb2e7510f54bdf7ffd0f54d570a0425e1c0cdf47036b",
+                   "app/services/generated_sql.py":  "febf64f158ba84a3a1a02405cc9954d3f8985c8de0d1a80198265f9bb7ea215d",
+                   "app/llm.py":  "c4e93eab565df8c7078cfe58c34cc46c41fcbf5ccbbe91e1b6bbe81ba20ed6b8"
+               },
+    "model_preflight":  {
+                            "LLM_PROVIDER":  "openai",
+                            "LLM_MODEL":  "qwen3:4b-instruct-8k",
+                            "OPENAI_BASE_URL":  "http://host.docker.internal:11434/v1",
+                            "ANSWER_PATH":  "sql",
+                            "DEFINITION_CLARIFICATIONS":  "on",
+                            "LLM_PROVIDER_INTENT":  "",
+                            "LLM_MODEL_INTENT":  "",
+                            "LLM_PROVIDER_SCHEMA":  "",
+                            "LLM_MODEL_SCHEMA":  "",
+                            "LLM_PROVIDER_EXPLAIN":  "",
+                            "LLM_MODEL_EXPLAIN":  "",
+                            "LLM_PROVIDER_ANSWERABILITY":  "",
+                            "LLM_MODEL_ANSWERABILITY":  ""
+                        },
+    "backend_image_id":  "sha256:f11d8618334db613a41bd6a88b2eaddccc56645655d743ea5ba45fccf7fd8573",
+    "frontend_image_id":  "sha256:7400a3a6c239293ad02ddbae919008434a83551189a004fe6416e17f2415cf17",
+    "jammi_image_id":  "sha256:6e98b1735cdab0ae77cdb703223509f6c9d8f6cc0c6bfada5ce657dc3768d417",
+    "compared_source_base":  "d16d7ef (includes 48292f4 and 4e728d6; post-freeze definitions)",
+    "frontend_source_sha256":  "320d315ff8394371655cf43f2ecba862993ccbd17ac9838a7033167900720260",
+    "jammi_version":  "0.54.0",
+    "comparison":  "Six backend files and frontend chat-workbench.tsx match the review worktree byte for byte. Image IDs identify running builds; not every file, dependency or persistent semantic layer is fingerprinted. Review blockers are documented separately."
+}

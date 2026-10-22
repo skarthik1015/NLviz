@@ -52,6 +52,10 @@ class BaseConnectionStore(ABC):
     @abstractmethod
     def archive_connection(self, connection_id: str) -> bool: ...
 
+    @abstractmethod
+    def update_jammi_tables(self, connection_id: str, jammi_tables: dict[str, str]) -> bool:
+        """Replace a connection's table mapping (e.g. after a file is attached)."""
+
     # ── Schema version operations ─────────────────────────────────────
 
     @abstractmethod
@@ -65,6 +69,11 @@ class BaseConnectionStore(ABC):
 
     @abstractmethod
     def get_published_version(self, connection_id: str) -> SemanticSchemaVersion | None: ...
+
+    @abstractmethod
+    def publish_version(self, connection_id: str, version_id: str) -> SemanticSchemaVersion:
+        """Make a validated version the connection's only published one, archiving the previous, as
+        one step: two concurrent publishes cannot both end up published (review B12)."""
 
     @abstractmethod
     def list_versions(self, connection_id: str) -> list[SemanticSchemaVersion]: ...
@@ -145,6 +154,16 @@ class JsonlConnectionStore(BaseConnectionStore):
             self._append_jsonl(self._connections_path, updated)
         return True
 
+    def update_jammi_tables(self, connection_id: str, jammi_tables: dict[str, str]) -> bool:
+        with self._lock:
+            profile = self._connections.get(connection_id)
+            if profile is None:
+                return False
+            updated = profile.model_copy(update={"jammi_tables": dict(jammi_tables)})
+            self._connections[connection_id] = updated
+            self._append_jsonl(self._connections_path, updated)
+        return True
+
     # ── Schema Version CRUD ──────────────────────────────────────────
 
     def create_version(self, version: SemanticSchemaVersion) -> SemanticSchemaVersion:
@@ -161,6 +180,21 @@ class JsonlConnectionStore(BaseConnectionStore):
             self._versions[version.version_id] = version
             self._append_jsonl(self._versions_path, version)
         return version
+
+    def publish_version(self, connection_id: str, version_id: str) -> SemanticSchemaVersion:
+        with self._lock:
+            version = self._versions.get(version_id)
+            if version is None or version.connection_id != connection_id or version.status != "validated":
+                raise ValueError("Version is not a validated version of this connection")
+            for vid, v in list(self._versions.items()):
+                if v.connection_id == connection_id and v.status == "published":
+                    archived = v.model_copy(update={"status": "archived"})
+                    self._versions[vid] = archived
+                    self._append_jsonl(self._versions_path, archived)
+            published = version.model_copy(update={"status": "published"})
+            self._versions[version_id] = published
+            self._append_jsonl(self._versions_path, published)
+        return published
 
     def get_published_version(self, connection_id: str) -> SemanticSchemaVersion | None:
         with self._lock:
@@ -237,13 +271,20 @@ class RDSConnectionStore(BaseConnectionStore):
                     """
                     INSERT INTO connections
                         (connection_id, display_name, connector_type, status,
-                         denied_columns, owner_id, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                         denied_columns, owner_id, created_at,
+                         engine, workspace_id, jammi_tables, mode, copied_at, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (connection_id) DO UPDATE SET
                         display_name   = EXCLUDED.display_name,
                         connector_type = EXCLUDED.connector_type,
                         status         = EXCLUDED.status,
                         denied_columns = EXCLUDED.denied_columns,
+                        engine         = EXCLUDED.engine,
+                        workspace_id   = EXCLUDED.workspace_id,
+                        jammi_tables   = EXCLUDED.jammi_tables,
+                        mode           = EXCLUDED.mode,
+                        copied_at      = EXCLUDED.copied_at,
+                        notes          = EXCLUDED.notes,
                         updated_at     = NOW()
                     """,
                     (
@@ -251,9 +292,17 @@ class RDSConnectionStore(BaseConnectionStore):
                         profile.display_name,
                         profile.connector_type,
                         profile.status,
-                        profile.denied_columns or [],
+                        # JSONB parameters must be wrapped: psycopg2 sends a bare list as a
+                        # Postgres ARRAY (an empty one happens to parse as '{}').
+                        _jsonb(profile.denied_columns or []),
                         profile.owner_id,
                         profile.created_at,
+                        profile.engine,
+                        profile.workspace_id,
+                        _jsonb(profile.jammi_tables),
+                        profile.mode,
+                        profile.copied_at,
+                        _jsonb(profile.notes or []),
                     ),
                 )
         return profile
@@ -287,6 +336,15 @@ class RDSConnectionStore(BaseConnectionStore):
                 cur.execute(
                     "UPDATE connections SET status = 'archived', updated_at = NOW() WHERE connection_id = %s",
                     (connection_id,),
+                )
+                return (cur.rowcount or 0) > 0
+
+    def update_jammi_tables(self, connection_id: str, jammi_tables: dict[str, str]) -> bool:
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE connections SET jammi_tables = %s, updated_at = NOW() WHERE connection_id = %s",
+                    (_jsonb(dict(jammi_tables)), connection_id),
                 )
                 return (cur.rowcount or 0) > 0
 
@@ -348,6 +406,27 @@ class RDSConnectionStore(BaseConnectionStore):
                 )
         return version
 
+    def publish_version(self, connection_id: str, version_id: str) -> SemanticSchemaVersion:
+        with self._pool.acquire() as conn:  # one transaction: committed on exit, rolled back on error
+            with conn.cursor() as cur:
+                # Serialises publishes of one connection.
+                cur.execute("SELECT connection_id FROM connections WHERE connection_id = %s FOR UPDATE",
+                            (connection_id,))
+                cur.execute(
+                    "UPDATE schema_versions SET status = 'archived', updated_at = NOW() "
+                    "WHERE connection_id = %s AND status = 'published' AND version_id <> %s",
+                    (connection_id, version_id),
+                )
+                cur.execute(
+                    "UPDATE schema_versions SET status = 'published', updated_at = NOW() "
+                    "WHERE version_id = %s AND connection_id = %s AND status = 'validated' RETURNING *",
+                    (version_id, connection_id),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    raise ValueError("Version is not a validated version of this connection")
+        return _row_to_version(dict(row))
+
     def get_published_version(self, connection_id: str) -> SemanticSchemaVersion | None:
         with self._pool.acquire() as conn:
             with conn.cursor() as cur:
@@ -390,7 +469,7 @@ class RDSConnectionStore(BaseConnectionStore):
             with conn.cursor() as cur:
                 cur.execute("SELECT DISTINCT connection_id FROM schema_versions WHERE status = 'published'")
                 rows = cur.fetchall()
-        return {row[0] for row in rows}
+        return {row["connection_id"] for row in rows}
 
 
 # ── Row-to-model helpers ──────────────────────────────────────────────
@@ -404,7 +483,25 @@ def _row_to_connection(row: dict) -> ConnectionProfile:
         denied_columns=list(row.get("denied_columns") or []),
         owner_id=row.get("owner_id"),
         created_at=row["created_at"],
+        engine=row.get("engine") or "legacy",
+        workspace_id=row.get("workspace_id"),
+        jammi_tables=_json_dict(row.get("jammi_tables")),
+        mode=row.get("mode") or "live",
+        copied_at=row.get("copied_at"),
+        notes=list(row.get("notes") or []),
     )
+
+
+def _jsonb(value):
+    import psycopg2.extras
+
+    return psycopg2.extras.Json(value)
+
+
+def _json_dict(raw) -> dict:
+    if not raw:
+        return {}
+    return dict(raw) if isinstance(raw, dict) else json.loads(raw)
 
 
 def _row_to_version(row: dict) -> SemanticSchemaVersion:

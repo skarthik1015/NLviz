@@ -50,7 +50,9 @@ def _to_json_safe(fig: go.Figure) -> dict[str, Any]:
     return json.loads(json_str)
 
 
-def _bar_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
+def _bar_chart(rows: list[dict[str, Any]], title: str, intent: SemanticIntent | None = None) -> dict[str, Any]:
+    if intent is not None and len(intent.dimensions) >= 2:
+        return _grouped_bar_chart(rows, title, intent)
     xk = _x_key(rows)
     x = [str(r.get(xk, "")) for r in rows] if xk else []
     y = [r.get("metric_value", 0) for r in rows]
@@ -61,8 +63,28 @@ def _bar_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
     return _to_json_safe(fig)
 
 
+def _grouped_bar_chart(rows: list[dict[str, Any]], title: str, intent: SemanticIntent) -> dict[str, Any]:
+    """Two breakdowns: the first on X, one bar series per value of the second (both keys kept;
+    plotting only the first merged different groups into one label, review B11)."""
+    xk, sk = intent.dimensions[0], intent.dimensions[1]
+    series: dict[str, dict[str, list]] = {}
+    for row in rows:
+        data = series.setdefault(str(row.get(sk, "")), {"x": [], "y": []})
+        data["x"].append(str(row.get(xk, "")))
+        data["y"].append(row.get("metric_value", 0))
+    fig = go.Figure()
+    for i, (label, data) in enumerate(series.items()):
+        fig.add_trace(go.Bar(x=data["x"], y=data["y"], name=label,
+                             marker_color=_MULTI_COLORS[i % len(_MULTI_COLORS)]))
+    fig.update_layout(**_BASE_LAYOUT, barmode="group", title={"text": title}, xaxis={"title": xk},
+                      yaxis={"title": "Value"}, legend={"orientation": "h", "yanchor": "bottom", "y": -0.3})
+    return _to_json_safe(fig)
+
+
 def _line_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
     xk = _x_key(rows)
+    if xk == "time_bucket":  # rows may come ordered by value; a line runs in time order
+        rows = sorted(rows, key=lambda r: str(r.get(xk, "")))
     x = [str(r.get(xk, "")) for r in rows] if xk else []
     y = [r.get("metric_value", 0) for r in rows]
     fig = go.Figure(
@@ -75,18 +97,20 @@ def _line_chart(rows: list[dict[str, Any]], title: str) -> dict[str, Any]:
 def _multi_line_chart(
     rows: list[dict[str, Any]], title: str, intent: SemanticIntent
 ) -> dict[str, Any]:
-    """Multi-series line chart: time on X-axis, one line per dimension value."""
-    time_col = intent.time_dimension
+    """Multi-series line chart: time on X-axis, one line per dimension value. The compiler names
+    the time column time_bucket (not the time dimension's name: reading that plotted every X as "",
+    review B11); each series is sorted by time, since rows come ordered by value."""
+    time_col = "time_bucket"
     dim_cols = intent.dimensions
 
     # Group rows by dimension values → one series per unique combination
-    series: dict[str, dict[str, list]] = {}
+    points: dict[str, list[tuple[str, Any]]] = {}
     for row in rows:
         dim_label = " / ".join(str(row.get(d, "")) for d in dim_cols) if dim_cols else "all"
-        if dim_label not in series:
-            series[dim_label] = {"x": [], "y": []}
-        series[dim_label]["x"].append(str(row.get(time_col or "", "")))
-        series[dim_label]["y"].append(row.get("metric_value", 0))
+        points.setdefault(dim_label, []).append((str(row.get(time_col, "")), row.get("metric_value", 0)))
+    series = {label: {"x": [x for x, _ in sorted(values, key=lambda p: p[0])],
+                      "y": [y for _, y in sorted(values, key=lambda p: p[0])]}
+              for label, values in points.items()}
 
     fig = go.Figure()
     for i, (label, data) in enumerate(series.items()):
@@ -100,7 +124,7 @@ def _multi_line_chart(
     fig.update_layout(
         **_BASE_LAYOUT,
         title={"text": title},
-        xaxis={"title": time_col or ""},
+        xaxis={"title": intent.time_dimension or ""},
         yaxis={"title": "Value"},
         legend={"orientation": "h", "yanchor": "bottom", "y": -0.3},
     )
@@ -127,5 +151,5 @@ def build_chart_spec(
     if chart_type == "line":
         return _line_chart(rows, title)
     if chart_type == "bar":
-        return _bar_chart(rows, title)
+        return _bar_chart(rows, title, intent)
     return _stat_chart(rows, title)

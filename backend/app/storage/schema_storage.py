@@ -47,6 +47,15 @@ class BaseSchemaStorage(ABC):
     def delete(self, path: str) -> None:
         """Delete a previously saved schema artifact."""
 
+    @abstractmethod
+    def read_text(self, connection_id: str, name: str) -> str:
+        """A small per-connection file next to its schemas (confirmed definitions); FileNotFoundError
+        when there is none."""
+
+    @abstractmethod
+    def write_text(self, connection_id: str, name: str, content: str) -> None:
+        """Write that file."""
+
     # ── Factory ───────────────────────────────────────────────────────
 
     @classmethod
@@ -84,6 +93,21 @@ class LocalSchemaStorage(BaseSchemaStorage):
         if file_path.exists():
             file_path.unlink()
 
+    def read_text(self, connection_id: str, name: str) -> str:
+        return (self._base_dir / connection_id / f"{name}.json").read_text(encoding="utf-8")
+
+    def write_text(self, connection_id: str, name: str, content: str) -> None:
+        path = self._base_dir / connection_id / f"{name}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        import tempfile
+
+        # A temporary file of its own per writer, then an atomic replace: never a half-written file,
+        # and concurrent writers never share one temporary name.
+        handle, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{name}.", suffix=".tmp")
+        with open(handle, "w", encoding="utf-8") as file:
+            file.write(content)
+        Path(temporary).replace(path)
+
 
 class S3SchemaStorage(BaseSchemaStorage):
     """Stores schema YAML files in S3.
@@ -112,6 +136,15 @@ class S3SchemaStorage(BaseSchemaStorage):
             return Path(path).read_text(encoding="utf-8")
         data = self._s3.download_bytes(key)
         return data.decode("utf-8")
+
+    def read_text(self, connection_id: str, name: str) -> str:
+        try:
+            return self._s3.download_bytes(f"schemas/{connection_id}/{name}.json").decode("utf-8")
+        except Exception as exc:  # noqa: BLE001 - a missing key is "no file"
+            raise FileNotFoundError(name) from exc
+
+    def write_text(self, connection_id: str, name: str, content: str) -> None:
+        self._s3.upload_bytes(f"schemas/{connection_id}/{name}.json", content.encode("utf-8"))
 
     def delete(self, path: str) -> None:
         if path.startswith("s3://"):

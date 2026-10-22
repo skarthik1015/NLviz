@@ -1,27 +1,108 @@
-version: "3.9"
+# NLviz on Jammi: the whole stack on one machine.
+#
+#   cp .env.example .env      # then fill in SECRET_STORE_KEY and JAMMI_SERVICE_TENANT
+#   docker compose up --build
+#
+# UI http://localhost:3000, API http://localhost:8000. jammi-server is private to the Compose network
+# (deployment shape B): only the backend talks to it. The LLM defaults to a local Ollama on the host.
+
+name: nlviz
 
 services:
+  jammi:
+    # Pinned by digest (decision A3): 0.54.0.
+    image: ghcr.io/f-inverse/jammi-ai-server:0.54.0@sha256:6e98b1735cdab0ae77cdb703223509f6c9d8f6cc0c6bfada5ce657dc3768d417
+    command: ["serve"]
+    environment:
+      JAMMI_GPU__DEVICE: "-1"
+      JAMMI_ARTIFACT_DIR: /var/lib/jammi
+      HF_HOME: /var/lib/jammi/hf
+    volumes:
+      - jammi-data:/var/lib/jammi
+      # Written by the backend, read by Jammi. Users never give Jammi a path or URL (issue J25).
+      - demo-data:/data/demo:ro
+      - uploads:/uploads:ro
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nlviz
+      POSTGRES_USER: nlviz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nlviz -d nlviz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
     command: ["python", "bootstrap_start.py"]
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-      DEV_USER_ID: karthik
-      SECRET_BACKEND: local
-      # Fixed 32-byte key so Fernet-encrypted connection credentials survive container restarts.
-      # Change this value if you want to rotate secrets (existing connections will need to be recreated).
-      SECRET_STORE_KEY: c_8ixACFhNp2gJnitMAWo4aOtgvM3xUtl6FY4avjlTk=
       ENVIRONMENT: development
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      LLM_PROVIDER: openai
-      LLM_MODEL: gpt-4.1-mini
+      CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DEV_USER_ID: ${DEV_USER_ID:-demo-user}
+      # App database: connections, schema versions, feedback.
+      DATABASE_URL: postgresql://nlviz:${POSTGRES_PASSWORD}@postgres:5432/nlviz
+      AUTO_MIGRATE: "true"
+      # Connection credentials, encrypted at rest. Must stay the same across restarts.
+      SECRET_BACKEND: local
+      SECRET_STORE_KEY: ${SECRET_STORE_KEY:?set SECRET_STORE_KEY in .env}
+      # Jammi
+      JAMMI_URL: grpc://jammi:8081
+      JAMMI_SERVICE_TENANT: ${JAMMI_SERVICE_TENANT:?set JAMMI_SERVICE_TENANT in .env}
+      DEMO_PARQUET_EXPORT_DIR: /srv/demo
+      JAMMI_DEMO_DATA_URL: /data/demo
+      JAMMI_UPLOAD_DIR: /srv/uploads
+      JAMMI_UPLOAD_URL: /uploads
+      MYSQL_FEDERATION: ${MYSQL_FEDERATION:-false}
+      PHRASE_REWRITES: ${PHRASE_REWRITES:-on}
+      BENCH_ENDPOINTS: ${BENCH_ENDPOINTS:-off}
+      SQL_FALLBACK: ${SQL_FALLBACK:-off}
+      ANSWER_PATH: ${ANSWER_PATH:-sql}
+      DEFINITION_CLARIFICATIONS: ${DEFINITION_CLARIFICATIONS:-on}
+      # Monthly hosted-model spending cap in USD (backend/app/observability); empty: no cap.
+      LLM_MONTHLY_BUDGET_USD: ${LLM_MONTHLY_BUDGET_USD:-}
+      LLM_PRICE_TABLE_JSON: ${LLM_PRICE_TABLE_JSON:-}
+      GROUNDING_ENABLED: ${GROUNDING_ENABLED:-true}
+      EXAMPLES_ENABLED: ${EXAMPLES_ENABLED:-true}
+      # LLM (app/llm.py): Ollama on the host by default (free, local); OpenAI, Anthropic or Bedrock
+      # by setting these in .env. Per-task overrides are empty unless set (see .env.example).
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-8k}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-ollama}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_PROVIDER_INTENT: ${LLM_PROVIDER_INTENT:-}
+      LLM_MODEL_INTENT: ${LLM_MODEL_INTENT:-}
+      LLM_PROVIDER_ANSWERABILITY: ${LLM_PROVIDER_ANSWERABILITY:-}
+      LLM_MODEL_ANSWERABILITY: ${LLM_MODEL_ANSWERABILITY:-}
+      LLM_PROVIDER_EXPLAIN: ${LLM_PROVIDER_EXPLAIN:-}
+      LLM_MODEL_EXPLAIN: ${LLM_MODEL_EXPLAIN:-}
+      LLM_PROVIDER_SCHEMA: ${LLM_PROVIDER_SCHEMA:-}
+      LLM_MODEL_SCHEMA: ${LLM_MODEL_SCHEMA:-}
+      LLM_INTENT_TIMEOUT_MS: ${LLM_INTENT_TIMEOUT_MS:-20000}
     volumes:
-      - ./backend/data:/app/data
+      - demo-data:/srv/demo
+      - uploads:/srv/uploads
+      - secrets:/app/data/.secrets
+      # Published semantic schemas: must survive a redeploy (the app DB points at these files).
+      - schemas:/app/data/schemas
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      jammi:
+        condition: service_started
+    restart: unless-stopped
 
   frontend:
     build:
@@ -29,6 +110,15 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - backend
+    restart: unless-stopped
+
+volumes:
+  jammi-data:
+  pg-data:
+  demo-data:
+  uploads:
+  secrets:
+  schemas:

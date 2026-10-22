@@ -1,19 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Cloud, Database, FileText, ChevronRight, Trash2, Settings } from "lucide-react";
+import { Cloud, Database, FileText, ChevronRight, Paperclip, Trash2, Settings } from "lucide-react";
 import { useState } from "react";
 import { useConnection } from "../lib/connection-context";
-import { deleteConnection } from "../lib/api";
+import { attachFile, deleteConnection } from "../lib/api";
 import type { ConnectorType, ConnectionProfile } from "../lib/types";
-import { PostgresForm } from "./connector-forms/postgres-form";
-import { AthenaForm } from "./connector-forms/athena-form";
+import { DatabaseForm } from "./connector-forms/database-form";
+import { S3ImportForm } from "./connector-forms/s3-import-form";
 import { UploadForm } from "./connector-forms/upload-form";
 import { SchemaGenerationStatus } from "./schema-generation-status";
 import { GlowyWavesHero } from "./ui/glowy-waves-hero";
 
 type ConnectorCard = {
-  type: ConnectorType | "upload";
+  type: ConnectorType | "s3";
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -29,10 +29,10 @@ const CONNECTOR_CARDS: ConnectorCard[] = [
     enabled: true,
   },
   {
-    type: "athena",
-    label: "S3 / Athena",
-    description: "Query data in S3 via Amazon Athena",
-    icon: <Cloud className="h-6 w-6" />,
+    type: "mysql",
+    label: "MySQL",
+    description: "Import a MySQL database",
+    icon: <Database className="h-6 w-6" />,
     enabled: true,
   },
   {
@@ -43,11 +43,11 @@ const CONNECTOR_CARDS: ConnectorCard[] = [
     enabled: true,
   },
   {
-    type: "duckdb",
-    label: "DuckDB",
-    description: "Coming soon",
-    icon: <Database className="h-6 w-6 opacity-40" />,
-    enabled: false,
+    type: "s3",
+    label: "File in S3",
+    description: "Import a CSV or Parquet object from your bucket",
+    icon: <Cloud className="h-6 w-6" />,
+    enabled: true,
   },
 ];
 
@@ -63,7 +63,7 @@ const cardVariants = {
 };
 
 export function ConnectionPicker() {
-  const { connections, refreshConnections, setActiveConnection } = useConnection();
+  const { connections, refreshConnections, setActiveConnection, openSample } = useConnection();
   const [step, setStep] = useState<WizardStep>("pick");
   const [selectedType, setSelectedType] = useState<ConnectorCard["type"] | null>(null);
   const [newConnectionId, setNewConnectionId] = useState<string | null>(null);
@@ -94,6 +94,30 @@ export function ConnectionPicker() {
     setStep("pick");
     setSelectedType(null);
     setNewConnectionId(null);
+  }
+
+  /** Add a CSV, Excel or Parquet file to a database connection as one more table, then regenerate the schema. */
+  function handleAttach(profile: ConnectionProfile) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx,.parquet";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const result = await attachFile(profile.connection_id, file);
+        alert(
+          `Added table "${result.table}" to ${profile.display_name}. ` +
+            "Questions can use the database or the file; questions that combine both are not supported yet (Jammi issue J28). " +
+            "The schema will now be regenerated to include it.",
+        );
+        await refreshConnections();
+        handleResumeGeneration(profile.connection_id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Could not add the file");
+      }
+    };
+    input.click();
   }
 
   async function handleDelete(profile: ConnectionProfile) {
@@ -140,9 +164,10 @@ export function ConnectionPicker() {
           >
             ← Back to connectors
           </button>
-          {selectedType === "postgres" && <PostgresForm onCreated={handleConnectionCreated} />}
-          {selectedType === "athena" && <AthenaForm onCreated={handleConnectionCreated} />}
+          {selectedType === "postgres" && <DatabaseForm kind="postgres" onCreated={handleConnectionCreated} />}
+          {selectedType === "mysql" && <DatabaseForm kind="mysql" onCreated={handleConnectionCreated} />}
           {selectedType === "upload" && <UploadForm onCreated={handleConnectionCreated} />}
+          {selectedType === "s3" && <S3ImportForm onCreated={handleConnectionCreated} />}
         </div>
       </div>
     );
@@ -178,6 +203,13 @@ export function ConnectionPicker() {
             <p className="text-foreground/70">
               Choose a data source to get started. We&apos;ll auto-generate a semantic schema so you can query in plain English.
             </p>
+            <button
+              type="button"
+              onClick={openSample}
+              className="mt-4 rounded-full border border-primary/40 bg-background px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+            >
+              Or try the sample data (Olist e-commerce, built in) →
+            </button>
           </div>
 
           {/* Connector cards */}
@@ -252,6 +284,16 @@ export function ConnectionPicker() {
                           <>Setup <Settings className="h-3 w-3" /></>
                         )}
                       </motion.button>
+                      {(conn.connector_type === "postgres" || conn.connector_type === "mysql") && (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleAttach(conn)}
+                          title="Add a CSV, Excel or Parquet file to this connection"
+                          className="rounded-full border border-border/30 p-1.5 text-foreground/40 transition-colors hover:border-primary/40 hover:text-primary"
+                        >
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </motion.button>
+                      )}
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDelete(conn)}

@@ -139,3 +139,29 @@ def test_query_service_runs_langgraph_pipeline_end_to_end():
     assert "Query executed: 2 row(s) returned" in response.trace
     assert "Validated: 2 rows" in response.trace
     assert "Summary generated" in response.trace
+
+
+def test_executor_turns_missing_values_into_null():
+    """A NULL time bucket arrives from pandas as NaT, which JSON cannot encode (was a 500)."""
+    import json
+    import math
+
+    from app.agent.nodes.executor import _sanitize_rows
+
+    frame = pd.DataFrame({"time_bucket": pd.to_datetime(["2018-01-01", None]), "metric_value": [1.5, math.nan]})
+    rows = _sanitize_rows(frame.to_dict(orient="records"))
+    assert rows[1] == {"time_bucket": None, "metric_value": None}
+    assert rows[0]["metric_value"] == 1.5
+    json.dumps(rows, default=str)
+
+
+def test_a_total_over_no_matching_rows_is_an_empty_answer_not_a_crash():
+    """One NULL row ("market cap of Apple" filtered on name = 'Apple'; the file says "Apple Inc.")
+    reached the stat chart's float(None) and the question failed with a 500 (gpt-4.1-mini, run 7)."""
+    from app.agent.nodes.chart_selector import build_chart_selector_node
+    from app.agent.nodes.validator import build_validator_node
+    from app.models.semantic_intent import SemanticIntent
+
+    state = {"intent": SemanticIntent(metric="m"), "rows": [{"metric_value": None}], "row_count": 1}
+    assert build_validator_node()(state)["validation_status"] == "empty"
+    assert build_chart_selector_node()(state)["chart_spec"] is None

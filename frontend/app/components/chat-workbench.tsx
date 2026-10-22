@@ -1,14 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState, type FormEvent } from "react";
-import { Table2, Layers } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Table2, Layers, MessageSquarePlus } from "lucide-react";
 
-import { getSchema, sendChatQuestion } from "../lib/api";
+import { ApiError, getSchema, streamChatQuestion, streamClarificationAnswer } from "../lib/api";
 import { useConnection } from "../lib/connection-context";
-import { ChatResponse, SchemaResponse } from "../lib/types";
+import { AgentStep, ChatResponse, SchemaResponse } from "../lib/types";
 import { PlotPreview } from "./plot-preview";
 import { ResultsTable } from "./results-table";
+import { TracePanel } from "./trace-panel";
+import { InterpretationPanel } from "./interpretation-panel";
+
+/** One question and its answer (or the clarification it is waiting on). */
+type Turn = { question: string; response: ChatResponse; steps: AgentStep[] };
+
+function newConversationId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function turnTitle(response: ChatResponse): string {
+  if (response.interpretation?.path === "generated_sql") return "Generated SQL answer";
+  const intent = response.intent;
+  return (
+    intent.metric.replaceAll("_", " ") +
+    (intent.dimensions.length > 0 ? ` by ${intent.dimensions.join(", ").replaceAll("_", " ")}` : "") +
+    (intent.time_dimension ? " over time" : "")
+  );
+}
 
 function TableBrowserPanel({ schema }: { schema: SchemaResponse }) {
   const tableNames = Object.keys(schema.tables);
@@ -105,9 +126,12 @@ function buildExamples(schema: SchemaResponse | null): string[] {
   if (!schema || schema.metrics.length === 0) {
     return [];
   }
+  // The backend checks that each suggestion compiles and does not double count across joins.
+  if (schema.suggested_questions && schema.suggested_questions.length > 0) {
+    return schema.suggested_questions.slice(0, 6);
+  }
 
   const metric = schema.metrics[0]?.display_name ?? schema.metrics[0]?.name ?? "value";
-  const metric2 = schema.metrics[1]?.display_name ?? metric;
   const dimension = schema.dimensions[0]?.display_name ?? null;
   const dimension2 = schema.dimensions[1]?.display_name ?? dimension;
   const timeDimension = schema.time_dimensions[0]?.display_name ?? null;
@@ -117,7 +141,6 @@ function buildExamples(schema: SchemaResponse | null): string[] {
   if (dimension2 && dimension2 !== dimension) examples.push(`Top 10 ${dimension2} by ${metric}`);
   if (timeDimension) examples.push(`Show ${metric} over time by ${timeDimension}`);
   examples.push(`What is the ${metric}?`);
-  if (timeDimension && dimension) examples.push(`${metric2} in 2018 by ${dimension}`);
 
   return examples.slice(0, 6);
 }
@@ -137,7 +160,13 @@ function looksUnsafeQuery(input: string): boolean {
 export function ChatWorkbench() {
   const { activeConnectionId, connections } = useConnection();
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState<ChatResponse | null>(null);
+  // The conversation: follow-up questions in the same conversation build on the previous turn.
+  const [conversationId, setConversationId] = useState<string>(newConversationId);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  // "Use this definition for every question on this connection" on a definition question.
+  const [rememberDefinition, setRememberDefinition] = useState(false);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -149,11 +178,38 @@ export function ChatWorkbench() {
   const activeConnection = connections.find((conn) => conn.connection_id === activeConnectionId);
   const canQuery = activeConnection?.query_ready ?? activeConnectionId == null;
   const examples = buildExamples(schema);
+  const current = turns.length ? turns[selected ?? turns.length - 1] : null;
+  const result = current?.response ?? null;
+  const isLatest = selected === null || selected === turns.length - 1;
+  // Each connection switch starts a new generation and aborts the request in flight: a slow answer
+  // for connection A must not land in B's conversation (review B16).
+  const generationRef = useRef(0);
+  const inFlightRef = useRef<AbortController | null>(null);
 
-  // Clear stale results when switching connections
-  useEffect(() => {
-    setResult(null);
+  /** A request bound to the current generation: `current()` is false once the user switched away. */
+  function beginRequest() {
+    inFlightRef.current?.abort();
+    const controller = new AbortController();
+    inFlightRef.current = controller;
+    const generation = generationRef.current;
+    return { signal: controller.signal, current: () => generation === generationRef.current && !controller.signal.aborted };
+  }
+
+  function startNewConversation() {
+    setConversationId(newConversationId());
+    setTurns([]);
+    setSelected(null);
+    setLiveSteps([]);
     setError(null);
+  }
+
+  // A new connection starts a new conversation.
+  useEffect(() => {
+    generationRef.current += 1;
+    inFlightRef.current?.abort();
+    inFlightRef.current = null;
+    setIsSubmitting(false);
+    startNewConversation();
     setQuestion("");
     setShowTableBrowser(false);
     setShowSchemaViewer(false);
@@ -175,8 +231,13 @@ export function ChatWorkbench() {
           });
         }
       })
-      .catch(() => {
-        if (!cancelled) setSchema(null);
+      .catch((schemaError: unknown) => {
+        if (cancelled) return;
+        setSchema(null);
+        // A published schema whose file was lost cannot answer anything: say how to fix it.
+        if (schemaError instanceof ApiError && schemaError.code === "SCHEMA_MISSING") {
+          setError("This connection's published schema is missing. Generate and publish its schema again.");
+        }
       });
     return () => {
       cancelled = true;
@@ -207,23 +268,73 @@ export function ChatWorkbench() {
     setAllowUnsafeSubmit(false);
     setError(null);
     setIsSubmitting(true);
+    setLiveSteps([]);
+    setSelected(null);
 
+    const steps: AgentStep[] = [];
+    const request = beginRequest();
     try {
-      const response = await sendChatQuestion(trimmed, showDebug, activeConnectionId ?? undefined);
-      setResult(response);
+      const response = await streamChatQuestion(
+        trimmed,
+        { conversationId, debug: showDebug, connectionId: activeConnectionId ?? undefined, signal: request.signal },
+        (step) => {
+          if (!request.current()) return;
+          steps.push(step);
+          setLiveSteps([...steps]);
+        },
+      );
+      if (!request.current()) return;
+      setTurns((previous) => [...previous, { question: trimmed, response, steps }]);
+      setQuestion("");
     } catch (submissionError) {
-      setResult(null);
+      if (!request.current()) return;
       setError(
         submissionError instanceof Error
           ? submissionError.message
           : "The request failed before the backend returned a response.",
       );
     } finally {
-      setIsSubmitting(false);
+      if (request.current()) {
+        setIsSubmitting(false);
+        setLiveSteps([]);
+      }
     }
   }
 
-  const traceItems = showDebug && result?.debug_trace ? result.debug_trace : result?.trace ?? [];
+  /** Answer the clarification the latest turn is waiting on; the turn continues from there. */
+  async function answerClarification(answer: string, remember = false) {
+    const last = turns[turns.length - 1];
+    if (!last?.response.conversation_id) return;
+    setError(null);
+    setIsSubmitting(true);
+    const steps: AgentStep[] = [...last.steps];
+    setLiveSteps([...steps]);
+    const request = beginRequest();
+    try {
+      const response = await streamClarificationAnswer(
+        last.response.conversation_id,
+        answer,
+        { debug: showDebug, connectionId: activeConnectionId ?? undefined, signal: request.signal, remember },
+        (step) => {
+          if (!request.current()) return;
+          steps.push(step);
+          setLiveSteps([...steps]);
+        },
+      );
+      if (!request.current()) return;
+      setTurns((previous) => [...previous.slice(0, -1), { question: last.question, response, steps }]);
+    } catch (submissionError) {
+      if (!request.current()) return;
+      setError(submissionError instanceof Error ? submissionError.message : "The request failed.");
+    } finally {
+      if (request.current()) {
+        setIsSubmitting(false);
+        setLiveSteps([]);
+      }
+    }
+  }
+
+  const traceSteps = isSubmitting ? liveSteps : current?.steps ?? [];
 
   return (
     <div className="workspace">
@@ -240,7 +351,11 @@ export function ChatWorkbench() {
                 setUnsafeWarning(null);
                 setAllowUnsafeSubmit(false);
               }}
-              placeholder={`For example: ${examples[0]}`}
+              placeholder={
+                turns.length
+                  ? "Ask a follow-up, e.g. “now by month” or “only credit card payments”"
+                  : `For example: ${examples[0]}`
+              }
             />
           </label>
 
@@ -296,8 +411,24 @@ export function ChatWorkbench() {
           {/* Toolbar */}
           <div className="toolbar">
             <div className="status">
-              {isSubmitting ? "Running semantic query pipeline…" : "Ready to query the backend API."}
+              {isSubmitting
+                ? "Running the agent…"
+                : turns.length
+                  ? `Conversation: ${turns.length} question${turns.length > 1 ? "s" : ""}. Follow-ups build on the last answer.`
+                  : "Ask a question about this connection."}
             </div>
+            {turns.length > 0 && (
+              <button
+                type="button"
+                className="data-browser-btn"
+                onClick={startNewConversation}
+                disabled={isSubmitting}
+                title="Start over: the next question will not build on earlier ones"
+              >
+                <MessageSquarePlus className="h-3.5 w-3.5" />
+                New conversation
+              </button>
+            )}
             <label className="flex items-center gap-1.5 text-sm" style={{ color: "var(--muted)" }}>
               <input type="checkbox" checked={showDebug} onChange={(e) => setShowDebug(e.target.checked)} />
               Debug trace
@@ -309,7 +440,7 @@ export function ChatWorkbench() {
               whileHover={!isSubmitting && canQuery ? { translateY: -1 } : {}}
               whileTap={!isSubmitting && canQuery ? { scale: 0.97 } : {}}
             >
-              {isSubmitting ? "Querying…" : "Run Query"}
+              {isSubmitting ? "Querying…" : turns.length ? "Ask" : "Run Query"}
             </motion.button>
             {!canQuery && (
               <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
@@ -338,17 +469,126 @@ export function ChatWorkbench() {
         </form>
       </section>
 
+      {/* ── Conversation thread ────────────────────────────── */}
+      {turns.length > 1 && (
+        <section className="panel section">
+          <h2 className="section-title">Conversation</h2>
+          <ol className="flex flex-col gap-1.5">
+            {turns.map((turn, index) => {
+              const active = index === (selected ?? turns.length - 1);
+              return (
+                <li key={`${index}-${turn.response.query_id}`}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(index)}
+                    className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                      active ? "border-primary/50 bg-background/80" : "border-border/40 hover:bg-background/60"
+                    }`}
+                  >
+                    <span className="font-medium">{turn.question}</span>
+                    <span style={{ color: "var(--muted)" }}>
+                      {" → "}
+                      {turn.response.status === "clarification"
+                        ? "waiting for your answer"
+                        : turn.response.status === "unsupported"
+                          ? "not in this data"
+                          : `${turnTitle(turn.response)} · ${turn.response.row_count} rows`}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      )}
+
+      {/* ── Live progress ──────────────────────────────────── */}
+      {isSubmitting && (
+        <section className="panel section">
+          <h2 className="section-title">Working on it</h2>
+          <TracePanel steps={liveSteps} live />
+        </section>
+      )}
+
+      {/* ── Clarification ──────────────────────────────────── */}
+      {!isSubmitting && result?.status === "clarification" && result.clarification && (
+        <section className="panel section">
+          <h2 className="section-title">{result.clarification.prompt}</h2>
+          {result.clarification.kind === "choice" ? (
+            <div className="flex flex-wrap gap-2" data-testid="clarification-choices">
+              {result.clarification.choices.map((choice) => (
+                <button
+                  key={choice.id}
+                  type="button"
+                  className="pill"
+                  disabled={!isLatest}
+                  onClick={() => answerClarification(choice.id, rememberDefinition && !!result.clarification?.rememberable)}
+                >
+                  {choice.label}
+                </button>
+              ))}
+              {result.clarification.rememberable && (
+                <label className="flex w-full items-center gap-2 text-sm" style={{ color: "var(--muted)" }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberDefinition}
+                    onChange={(event) => setRememberDefinition(event.target.checked)}
+                  />
+                  Use this definition for every question on this connection (otherwise only this conversation)
+                </label>
+              )}
+            </div>
+          ) : (
+          <>
+          <p className="mb-3 text-sm" style={{ color: "var(--muted)" }}>
+            {result.clarification.reason === "assumed"
+              ? `Your question could refer to several ${(result.clarification.dimension ?? "").replaceAll("_", " ")} values. Pick one, or keep all of them.`
+              : `“${result.clarification.raw}” is not a ${(result.clarification.dimension ?? "").replaceAll("_", " ")} in the data. Did you mean one of these?`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {result.clarification.options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className="pill"
+                disabled={!isLatest}
+                onClick={() => answerClarification(option)}
+              >
+                {option}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="pill"
+              disabled={!isLatest}
+              onClick={() => answerClarification(result.clarification!.any_value)}
+            >
+              Any {(result.clarification.dimension ?? "").replaceAll("_", " ")}
+            </button>
+          </div>
+          </>
+          )}
+          <div className="mt-4">
+            <TracePanel steps={current?.steps ?? []} live={false} />
+          </div>
+        </section>
+      )}
+
       {/* ── Results ────────────────────────────────────────── */}
-      {result ? (
+      {/* ── The data cannot answer the question ───────────── */}
+      {!isSubmitting && result?.status === "unsupported" && (
+        <section className="panel section" data-testid="unsupported">
+          <h2 className="section-title">Not something this data can answer</h2>
+          <p style={{ fontSize: "0.9rem", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>
+            {result.explanation ?? result.intent.unsupported ?? "This question needs data or a definition that isn't available. Try a measure or breakdown from View Schema."}
+          </p>
+        </section>
+      )}
+
+      {result?.status === "clarification" || result?.status === "unsupported" ? null : result ? (
         <div className="results-grid">
           <section className="panel section chart-panel">
-            <h2 className="section-title">
-              {result.intent.metric.replaceAll("_", " ")}
-              {result.intent.dimensions.length > 0
-                ? ` by ${result.intent.dimensions.join(", ").replaceAll("_", " ")}`
-                : ""}
-              {result.intent.time_dimension ? " over time" : ""}
-            </h2>
+            <h2 className="section-title">{turnTitle(result)}</h2>
 
             {result.explanation ? (
               <p style={{ fontSize: "0.9rem", color: "var(--muted)", margin: "0 0 12px 0", lineHeight: 1.5 }}>
@@ -402,22 +642,19 @@ export function ChatWorkbench() {
             </section>
 
             <div className="stack">
+              {result.interpretation && <InterpretationPanel interpretation={result.interpretation} />}
               <section className="panel section">
-                <h2 className="section-title">
-                  {showDebug && result.debug_trace ? "Debug Trace" : "Execution Trace"}
-                </h2>
-                <div className="trace">
-                  {traceItems.map((item, index) => (
-                    <div className="trace-item" key={`${index}-${item}`}>
-                      {item}
-                    </div>
-                  ))}
-                </div>
+                <h2 className="section-title">How it was answered</h2>
+                <TracePanel
+                  steps={traceSteps.length ? traceSteps : result.trace.map((line) => ({ node: "", trace: [line] }))}
+                  live={false}
+                  debugTrace={showDebug ? result.debug_trace : null}
+                />
               </section>
 
               <section className="panel section">
-                <h2 className="section-title">Compiled SQL</h2>
-                <pre className="code">{result.sql}</pre>
+                <h2 className="section-title">{result.interpretation?.path === "generated_sql" ? "Generated SQL" : result.interpretation?.path === "sql" ? "Checked SQL" : "Compiled SQL"}</h2>
+                <pre className="code">{result.sql ?? ""}</pre>
               </section>
 
               <section className="panel section">
@@ -428,16 +665,35 @@ export function ChatWorkbench() {
                     <span className="meta-val">{result.query_id}</span>
                   </div>
                   <div className="meta-row">
-                    <span className="meta-key">Order</span>
-                    <span>{result.intent.order_by}</span>
+                    <span className="meta-key">Answered by</span>
+                    <span>
+                      {result.interpretation?.path === "sql"
+                        ? "SQL written by the model, checked against the data model"
+                        : result.interpretation?.path === "generated_sql"
+                          ? "Generated SQL (not checked)"
+                          : "Semantic compiler"}
+                    </span>
                   </div>
+                  {result.interpretation?.path !== "sql" && (
+                    <>
+                      {/* The compiler path's own fields; the SQL path's are in the interpretation. */}
+                      <div className="meta-row">
+                        <span className="meta-key">Order</span>
+                        <span>{result.intent.order_by}</span>
+                      </div>
+                      <div className="meta-row">
+                        <span className="meta-key">Intent source</span>
+                        <span>{result.intent_source}</span>
+                      </div>
+                      <div className="meta-row">
+                        <span className="meta-key">Limit</span>
+                        <span>{result.intent.limit}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="meta-row">
-                    <span className="meta-key">Intent source</span>
-                    <span>{result.intent_source}</span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="meta-key">Limit</span>
-                    <span>{result.intent.limit}</span>
+                    <span className="meta-key">Rows</span>
+                    <span>{result.row_count}</span>
                   </div>
                 </div>
               </section>

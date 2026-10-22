@@ -1,297 +1,292 @@
-# NL Query Tool
+# NLviz: ask a database a question in plain English
 
-A natural-language analytics platform that converts plain-English questions into SQL, executes them against your database, and returns tabular results, charts, and AI-generated explanations — without writing a single line of SQL.
+NLviz is a local portfolio demo. Connect a PostgreSQL or MySQL database, or upload a CSV, Excel or
+Parquet file, and ask business questions. NLviz builds a data model for the source with an LLM. Each
+question is answered with SQL that the model writes from that data model. Before it runs, the SQL is
+**checked against the data model's definitions**. The query runs on the
+[Jammi](https://github.com/f-inverse/jammi-ai) engine, and the answer comes with a table, a chart,
+and an interpretation read from the SQL that ran. When a question is ambiguous it asks; when the
+data cannot answer it, it says so.
 
-**Core design principle:** The LLM never writes SQL. It maps natural language to a `SemanticIntent` (metric + dimensions + filters). SQL is compiled deterministically from a governed semantic YAML schema, eliminating hallucinations and making every query auditable.
+![Answer, chart and interpretation](docs/packaging/assets/answer-chart-interpretation.png)
 
----
+> **Answers can be wrong.** On a sealed holdout the app answered 43.9% of first questions correctly
+> and 30.9% wrongly with a free local model ([results](#results)). The metric definitions are
+> generated and inferred, not confirmed by a person. This is a demo of an architecture and an
+> evaluation method, not a dependable analyst.
 
-## Quick Start (Local Dev)
+## How a question is answered
 
-**Prerequisites:** Python 3.11+, Node.js 20+, npm 10+
+```mermaid
+flowchart LR
+    Q([Question]) --> C[Context: tables, joins,<br/>metric and dimension definitions,<br/>value hints, examples, previous SQL]
+    C --> L[LLM writes SQL<br/>or says it can't]
+    L --> G[Pushdown guard:<br/>engine-safe SQL]
+    G --> K[Semantic checks]
+    K -->|wrong| L
+    K -->|a choice| U[Ask the user] --> C
+    K -->|ok| S[Safety gate:<br/>read-only, allowlisted tables]
+    S --> J[Jammi] --> A([Rows, chart, interpretation<br/>read from the SQL])
+```
+
+The checks (`backend/app/services/sql_checks.py`) read the SQL's syntax tree, tracing columns through
+CTEs and subqueries:
+
+| Check | What it prevents |
+|---|---|
+| Double counting | Adding up one table across a join that repeats its rows (order totals summed over order lines). Predicted from the join graph, then confirmed on the data. |
+| Agreed definitions | Dropping a metric's condition ("revenue excludes canceled orders"), unless the question asks to |
+| Mixed units | One figure across several currencies: the user picks one, or a breakdown by currency |
+| Zero placeholders | Averaging zeros that may mean "not recorded" |
+| Values | Filtering on a value no row has ("Rio": rio de janeiro, or another city?) |
+| Definitions | Applying an unconfirmed business definition that changes the answer (do canceled orders count? which statuses?). Asked before running, answered once per conversation, or kept for the connection when the user says so |
+
+A failed check goes back to the model. A choice goes to the user, and the regenerated SQL must
+satisfy it. The checks went through three rounds of adversarial review. Each
+defect found is a regression test, and the remaining limits are documented in
+[current-architecture.md](docs/architecture/current-architecture.md) §5.2.
+
+**Why SQL-primary.** NLviz began with the LLM writing a structured intent that a deterministic
+compiler turned into SQL. A controlled comparison on 139 questions over three unseen databases found
+that the same model writing SQL from the same context did better with both models tried:
+- local 4B model: 62 vs 44 correct first answers;
+- gpt-4.1-mini: 71 vs 52.
+
+No question was answered correctly by the compiler alone. The semantic layer now supplies the
+context, the definitions and the checks. The compiler remains for edited interpretations and for
+running without a model. The full record is in [ablation-results.md](docs/ablation-results.md).
+
+## Results
+
+**Sealed holdout:** three databases, 123 turns, written by another agent and never seen during
+development. It was run once after the code was frozen ([freeze manifest](docs/freeze-manifest.md)).
+
+| Arm | Model | Correct first answer | Wrong | Final correct |
+|---|---|---|---|---|
+| SQL-primary (the app) | local `qwen3:4b-instruct-8k` | 54 (43.9%, 95% CI 35–53%) | 38 (30.9%) | 69 (56.1%) |
+| Text-to-SQL, no semantic checks | local `qwen3:4b-instruct-8k` | 52 (42.3%) | 45 (36.6%) | 67 (54.5%) |
+| SQL-primary (the app) | `gpt-4.1-mini` | 58 (47.2%, 95% CI 39–56%) | 40 (32.5%) | 73 (59.3%) |
+| Text-to-SQL, no semantic checks | `gpt-4.1-mini` | 57 (46.3%) | 46 (37.4%) | 72 (58.5%) |
+
+**Reading the results:**
+- Refusals: every arm refused all 15 unsupported questions.
+- The checks' effect: with both models, 6–7 fewer wrong answers, at the same or better accuracy.
+  On 123 related turns the intervals overlap, so this is a direction, not a proven difference.
+- Biggest weakness: questions that hinge on an unstated business policy (0–1 of 15). The
+  definition questions described above were added after the holdout run in response, so they are not
+  in these numbers.
+- Owner review of the clarifications: the app asked 18 clarifications no scripted rule matched (11
+  local, 7 hosted), and the author reviewed them by hand.
+  - 5 were judged useful (4 local, 1 hosted), 6 unnecessary, and 1 is still under discussion.
+  - The remaining 6 are follow-up turns that never ran.
+
+  The machine-scored totals above stay as published.
+- Cost: the hosted run cost $0.26 for both arms.
+
+**Development set:** 139 turns, used to guide development.
+- SQL-primary before the definition questions: 65 correct first answers and 49 wrong on the local
+  model, and 71 and 49 on gpt-4.1-mini.
+- The current build on the local model: 63 correct, 42 wrong and 11 definition questions. Final
+  correctness is 81 of 139, within run-to-run variance.
+
+**Tests:**
+- 641 offline;
+- about 720 live, against Jammi, Postgres, MySQL and S3;
+- Playwright browser tests: 3 live and 4 mocked.
+
+Each defect a review found has a regression test. One known issue is kept as an expected failure.
+
+## Run it locally
+
+Everything runs on your machine: the UI, the API, the Jammi query engine and the app database, as one
+Docker Compose stack, with a free local model through Ollama. No account or API key is needed.
+
+### What you need
+
+- **Docker Desktop**, or Docker Engine with Compose v2. Give Docker at least **8 GB of memory**, and
+  have about 10 GB free on disk for the images and the model.
+- **[Ollama](https://ollama.com)**, running on the same machine (the containers reach it at
+  `host.docker.internal:11434`).
+- **Python 3**, only to generate two keys in step 2 (any Python with `cryptography` installed). On
+  Linux, `openssl` works too.
+- Optional: Node.js 20+ for the browser tests; an OpenAI or Anthropic key to use a hosted model.
+
+### 1. Get the code
 
 ```bash
-# 1. Backend
+git clone -b v2-jammi https://github.com/skarthik1015/NLviz.git
+cd NLviz
+```
+
+This README describes the `v2-jammi` branch; `main` still holds the earlier version.
+
+### 2. Create `.env`
+
+```bash
+cp .env.example .env
+```
+
+Fill in the three empty values at the top of `.env`. Generate each once, then keep it: the secret
+store key encrypts saved connection passwords, and changing it later makes them unreadable.
+
+| Setting | How to generate it |
+|---|---|
+| `POSTGRES_PASSWORD` | any long random string, e.g. `python -c "import secrets; print(secrets.token_urlsafe(24))"` |
+| `SECRET_STORE_KEY` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `JAMMI_SERVICE_TENANT` | `python -c "import uuid; print(uuid.uuid4())"` |
+
+Leave everything else as it is: the defaults use the local model, SQL-primary answers and definition
+questions. `.env` is git-ignored; never commit it.
+
+### 3. Prepare the local model
+
+The app expects `qwen3:4b-instruct-8k`: Qwen3 4B with an 8k context, which schema generation needs
+(Ollama's default context is too small).
+
+macOS / Linux:
+
+```bash
+ollama pull qwen3:4b-instruct
+printf 'FROM qwen3:4b-instruct\nPARAMETER num_ctx 8192\n' > Modelfile
+ollama create qwen3:4b-instruct-8k -f Modelfile
+```
+
+Windows (PowerShell):
+
+```powershell
+ollama pull qwen3:4b-instruct
+"FROM qwen3:4b-instruct`nPARAMETER num_ctx 8192" | Set-Content Modelfile -Encoding ascii
+ollama create qwen3:4b-instruct-8k -f Modelfile
+```
+
+### 4. Start the stack
+
+```bash
+docker compose up --build -d
+docker compose ps        # jammi, postgres, backend and frontend should be running
+```
+
+The first build takes several minutes. The backend then needs a minute or two to prepare the bundled
+sample data and its search index. It is ready when <http://localhost:8000/healthz> returns
+`{"status":"ok"}`. To follow progress, run `docker compose logs -f backend`.
+
+### 5. Try it
+
+Open <http://localhost:3000>. The local development login (`DEV_USER_ID` in `.env`) signs you in
+automatically.
+
+- Bundled sample, no setup: on the start screen, choose **Or try the sample data**. Later, it's
+  under **New Connection**. It is a Brazilian e-commerce dataset (Olist, shipped as
+  `backend/data/ecommerce.duckdb`) with a hand-written data model. Try:
+  - "How many orders are there?";
+  - "Revenue by customer state, top 5", which first asks how revenue should be counted;
+  - "Orders from customers in Rio";
+  - "Will it rain tomorrow?" (refused: the data can't answer it).
+- Your own data: choose **New Connection** to upload a CSV, Excel or Parquet file, or to connect
+  a PostgreSQL or MySQL database. Then:
+  1. Generate its data model: about a minute with the local model.
+  2. Review the model.
+  3. Publish it.
+  4. Ask questions.
+
+  For a database on your own machine, use `host.docker.internal` as the host and a read-only account.
+- What to look at: the checked SQL, the interpretation panel (what was computed, under which
+  definition and why), and the step trace. Answer a clarification if one appears, and try a
+  follow-up. **New conversation** clears the context.
+
+### Stop, reset, update
+
+```bash
+docker compose down        # stop; your connections and published data models are kept
+docker compose down -v     # stop and delete all data (connections, uploads, app database)
+git pull && docker compose up --build -d   # update
+```
+
+### Using a hosted model instead
+
+In `.env`, replace the four model lines. For example, for OpenAI:
+
+```
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4.1-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=sk-...
+LLM_MONTHLY_BUDGET_USD=5
+```
+
+Then run `docker compose up -d backend`. `LLM_MONTHLY_BUDGET_USD` stops hosted calls once the month's
+spend reaches it. Anthropic and per-task models are described in `.env.example`.
+
+### Other settings
+
+- `ANSWER_PATH=semantic` uses the intent compiler instead of SQL-primary.
+- `DEFINITION_CLARIFICATIONS=off` applies the data model's guessed definitions without asking.
+- MySQL databases are copied as a snapshot by default, for consistent answers (live MySQL federation is
+  behind `MYSQL_FEDERATION=true`).
+
+### If something doesn't work
+
+| Symptom | Fix |
+|---|---|
+| Questions fail with a model or connection error | Check that Ollama is running and `ollama list` shows `qwen3:4b-instruct-8k`. On Linux, Ollama must listen on an address the containers can reach (`OLLAMA_HOST=0.0.0.0`). |
+| Generating a data model fails or is cut short | The 8k model variant is missing (step 3), or Docker has too little memory. |
+| Port 3000 or 8000 is already in use | Stop what is using it, or change the published ports in `docker-compose.yml`. |
+| The backend restarts repeatedly | `docker compose logs backend`; usually an empty or invalid value in `.env` (step 2). |
+
+### Run the tests
+
+```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python seed.py                                        # load sample DuckDB ecommerce data (run once)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# 2. Frontend (new terminal)
-cd frontend
-npm install
-export NEXT_PUBLIC_API_BASE_URL=http://localhost:8000  # Windows: set NEXT_PUBLIC_API_BASE_URL=...
-npm run dev
+python -m pytest -q        # offline suite; live tests skip without JAMMI_TEST_* settings
+cd ../frontend
+npm ci
+npx tsc --noEmit
+npx playwright install chromium
+npx playwright test --config playwright.mock.config.ts   # no backend needed
+npx playwright test        # against the running stack; needs a published "Olist (live Postgres)" connection
 ```
 
-Open `http://localhost:3000`. The default local connection uses the bundled Olist Brazilian e-commerce DuckDB dataset — no external database needed.
-
----
-
-## Docker Start
-
-```bash
-docker compose up --build
-```
-
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-
-The compose setup auto-seeds DuckDB on first boot via `bootstrap_start.py`.
-
----
-
-## Architecture
-
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15 · React · TypeScript · Tailwind CSS · Plotly |
-| Backend API | FastAPI · Python 3.12 · Uvicorn |
-| Query Pipeline | LangGraph (directed agent graph) |
-| LLM | OpenAI GPT-4.1-mini (default) · Claude Sonnet (alt) |
-| Structured LLM Output | `instructor` + Pydantic |
-| Database Connectors | DuckDB · PostgreSQL (psycopg2) · AWS Athena (pyathena) |
-| File Uploads | S3 (production) · local DuckDB (dev) |
-| Secret Storage | AWS Secrets Manager (production) · Fernet-encrypted files (dev) |
-| Connection Metadata | PostgreSQL RDS (production) · JSONL flat files (dev) |
-| Schema Storage | S3 (production) · local filesystem (dev) |
-| Containers | AWS ECS Fargate |
-| CI/CD | GitHub Actions → ECR → ECS force-redeploy |
-
-### LangGraph Query Pipeline
-
-```
-User Question
-     │
-     ▼
-┌─────────────────┐
-│  Intent Mapper  │  NL → SemanticIntent via LLM (with heuristic fallback)
-└────────┬────────┘  e.g. { metric: "total_revenue", dimensions: ["category"],
-         │                  time_dimension: "order_date", granularity: "month" }
-         ▼
-┌─────────────────┐
-│   SQL Builder   │  Deterministic compile: SemanticIntent + YAML schema → SQL
-│   (no LLM)      │  Handles JOINs, DATE_TRUNC, filters, ORDER BY, LIMIT
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    Executor     │  Runs SQL against the live database connector
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐       ┌─────────────────┐
-│    Validator    │──────▶│   SQL Builder   │  retry without date filter
-│  (empty/too big)│ retry │   (2nd attempt) │  or with tighter LIMIT
-└────────┬────────┘       └─────────────────┘
-         │ continue
-         ▼
-┌─────────────────┐
-│  Chart Selector │  Picks bar / line / scatter / pie based on data shape
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    Explainer    │  LLM generates 2–3 sentence plain-English summary
-└────────┬────────┘
-         │
-         ▼
-    ChatResponse  (rows + chart spec + explanation + trace)
-```
-
-Pipeline defined in `backend/app/agent/graph.py`. State schema in `backend/app/agent/state.py`.
-
-### Semantic Layer
-
-Each connection has a versioned semantic schema (YAML) that maps business concepts to physical SQL:
-
-- **Metrics** — named measures with SQL expressions (e.g. `SUM(o.payment_value)`)
-- **Dimensions** — categorical grouping columns with cardinality hints
-- **Time Dimensions** — DATE/TIMESTAMP columns with granularity settings
-- **Join Paths** — explicit table relationship definitions
-
-Schemas are auto-generated by the LLM from physical schema introspection and validated by executing probe queries. Stored in `backend/app/semantic/schemas/` (local) or S3 (production).
-
-### SQL Safety
-
-Every query is validated via `backend/app/security/sql_safety.py` before execution:
-- Only `SELECT` statements allowed (enforced via `sqlglot` AST parsing — not string matching)
-- Table allowlist per connection
-- Column denylist support for PII fields
-- Integer `LIMIT` enforced to prevent unbounded scans
-
----
-
-## Connecting Your Database
-
-### Supported Connectors
-
-| Connector | Status | What the user provides |
-|-----------|--------|------------------------|
-| **CSV / Parquet Upload** | Full | File upload (up to 100 MB) |
-| **PostgreSQL** | Full | Host, port, database, username, password, schema |
-| **AWS Athena / S3** | Full (`task_role` and `iam_keys` auth modes) | S3 output location, Glue database, AWS region, auth credentials |
-| **Redshift** | Stub — future phase | — |
-
-### Connection Workflow
-
-```
-1. Test Connection   → verifies credentials + returns live table list
-2. Generate Schema   → async LLM job: introspect DB → generate semantic YAML → validate
-3. Poll Job Status   → GET /api/connections/{id}/jobs/{job_id}
-4. Publish Schema    → activates the connection for querying (requires confidence ≥ 30%)
-5. Ask Questions     → POST /api/chat with natural-language question
-```
-
----
-
-## API Reference
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/healthz` | Health check |
-| `POST` | `/api/chat` | Execute a natural-language query |
-| `GET` | `/api/schema` | Return active semantic schema context |
-| `POST` | `/api/feedback` | Store thumbs up/down rating |
-| `GET` | `/api/connections` | List user's connections |
-| `POST` | `/api/connections/test` | Test connection + preview tables |
-| `POST` | `/api/connections` | Create a named connection (save credentials) |
-| `POST` | `/api/connections/upload` | Upload CSV / Parquet file |
-| `POST` | `/api/connections/{id}/generate` | Start async schema generation job |
-| `GET` | `/api/connections/{id}/jobs/{job_id}` | Poll generation job status |
-| `POST` | `/api/connections/{id}/publish` | Publish a validated schema version |
-| `DELETE` | `/api/connections/{id}` | Delete connection and all artifacts |
-
----
-
-## Environment Variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `OPENAI_API_KEY` | — | Required for LLM intent mapping (or use `ANTHROPIC_API_KEY`) |
-| `LLM_PROVIDER` | `openai` | LLM provider: `openai` \| `anthropic` |
-| `LLM_MODEL` | `gpt-4.1-mini` | Model ID passed to the provider |
-| `SECRET_BACKEND` | `local` | `local` (dev) or `aws_secrets_manager` (prod) |
-| `SECRET_STORE_KEY` | auto-generated | Fernet key for local credential encryption — set a stable value to persist secrets across restarts |
-| `DATABASE_URL` | — | PostgreSQL DSN for RDS connection metadata (omit to use JSONL local store) |
-| `UPLOAD_BUCKET` | — | S3 bucket for CSV/Parquet uploads |
-| `SCHEMA_BUCKET` | — | S3 bucket for generated semantic YAML schemas |
-| `API_PREFIX` | `` | Set to `/api` in production (ALB routes `/api/*` to backend) |
-| `CORS_ALLOW_ORIGINS` | `http://localhost:3000,...` | Comma-separated CORS allowlist |
-| `RATE_LIMIT_RPM` | `30` | Requests per minute per user |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Frontend → backend URL |
-| `DEV_USER_ID` | — | **Development bypass only** — see Authentication note below |
-
----
-
-## Authentication
-
-The backend reads user identity from the `x-amzn-oidc-identity` header injected by AWS ALB after Cognito authentication.
-
-**During development,** `DEV_USER_ID` is set as an environment variable (e.g. `DEV_USER_ID=dev`) to bypass the ALB/Cognito flow entirely. All requests are treated as the same user. This was used throughout the development and staging phase for local testing and Fargate deploys before Cognito was configured.
-
-**This bypass must be removed before exposing the tool to real users.** It is currently set in `infra/task-definition-backend.json`. See the Production Readiness section below for the Cognito setup steps.
-
----
-
-## Running Tests
-
-```bash
-# Backend — full suite
-cd backend && pytest
-
-# Backend — golden accuracy suite (80% gate: 20 pinned question→intent→SQL cases)
-pytest tests/golden_tests.py
-
-# Backend — specific file
-pytest tests/test_sql_builder.py
-
-# Frontend — typecheck + build
-cd frontend && npm run typecheck && npm run build
-```
-
----
-
-## Deployment
-
-The app runs on AWS ECS Fargate with two containers (backend + frontend) behind an Application Load Balancer.
-
-**CI/CD pipeline:** push to `main` → GitHub Actions runs tests → builds Docker images → pushes to ECR → force-redeploys ECS services.
-
-**One-time AWS setup** (ECR repos, S3 buckets, IAM roles, Secrets Manager entries, CloudWatch log groups, GitHub secrets) is documented in [infra/README.md](infra/README.md).
-
-Key production environment variables are injected via the ECS task definition, with secrets sourced from AWS Secrets Manager.
-
----
-
-## Production Readiness — Future Work
-
-This section is a guide for whoever takes this tool to production. The core query engine is solid and well-tested. The items below are the gaps that need to be addressed before exposing it to real users at scale.
-
-### 1. Authentication — Blocking
-
-**Problem:** `DEV_USER_ID` is currently set in `infra/task-definition-backend.json`, meaning all Fargate requests are treated as a single shared user. Anyone who reaches the ALB can see and query all connections.
-
-**Fix (AWS Cognito):**
-1. Create a Cognito User Pool: `aws cognito-idp create-user-pool --pool-name nl-query-tool`
-2. Create a Cognito App Client (confidential, Authorization Code grant, scope: `openid email`)
-3. Configure ALB OIDC authentication action on the HTTP/HTTPS listener pointing at Cognito
-4. Remove `DEV_USER_ID` from `infra/task-definition-backend.json`
-5. The ALB will redirect unauthenticated requests to the Cognito Hosted UI and inject `x-amzn-oidc-identity` on authenticated requests — the backend already reads this header in `backend/app/security/auth.py`
-
-### 2. Tenant Isolation — Blocking
-
-**Problem:** The `X-Connection-Id` header controls which database is queried, but the runtime resolution path in `backend/app/dependencies.py` does not verify that the requesting user owns that connection. A user who knows another connection's UUID can query it.
-
-**Fix:** Add an ownership check in `get_runtime()` (`backend/app/dependencies.py`) similar to the `_verify_owner()` check already present in `backend/app/api/routes/connections.py`.
-
-### 3. Rate Limiting — High Priority
-
-**Problem:** The rate-limit middleware in `backend/app/rate_limit.py` matches the path `/chat`, but production sets `API_PREFIX=/api`, making the real path `/api/chat`. The middleware never fires in production.
-
-**Fix:** Update the middleware to strip the API prefix before matching, or match against the path suffix. One-line change in `backend/app/rate_limit.py`.
-
-### 4. Schema Generation Job Persistence — High Priority
-
-**Problem:** `GenerationJobManager` (`backend/app/services/generation_job_manager.py`) stores jobs in process memory. If the Fargate task restarts mid-job or if the service scales to multiple tasks, polling returns 404.
-
-**Fix:** Back the job store with Redis (ElastiCache) or SQS. This is also the prerequisite for running `--workers > 1` on the backend.
-
-### 5. Athena Cross-Account Role (`role_arn` mode) — Medium Priority
-
-**Problem:** `role_arn` auth mode in `backend/app/connectors/athena_connector.py` raises `NotImplementedError`. This is the mode needed for multi-tenant SaaS where users are in different AWS accounts. The frontend form fields are already present but `disabled` in `frontend/app/components/connector-forms/athena-form.tsx`.
-
-**Fix:** Implement `sts:AssumeRole` call in `AthenaConnector.__init__` when `auth_mode == "role_arn"`. The full design spec (including trust policy and credential refresh) is in `CLAUDE.md` under "Option 1 — Cross-Account IAM Role". Remove the `disabled` prop from the frontend form once implemented.
-
-### 6. HTTPS Enforcement — Medium Priority
-
-**Problem:** Hardcoded `http://` URLs exist in the deploy workflow, Terraform modules, CORS config, and smoke tests. These will break when HTTPS is enforced on the ALB.
-
-**Fix:** Audit `.github/workflows/deploy.yml`, `infrastructure/terraform/modules/alb/`, `infrastructure/terraform/modules/ecs/`, and `infrastructure/terraform/modules/s3/` for `http://` assumptions and update to `https://`.
-
-### 7. Deployment Control Plane Consolidation — Medium Priority
-
-**Problem:** There are two competing deployment mechanisms: Terraform (`infrastructure/terraform/`) and GitHub Actions using `sed` to mutate JSON task definitions in `infra/`. These can drift and make rollbacks harder than necessary.
-
-**Fix:** Pick one. Either let Terraform fully own ECS task definitions and rollout, or remove Terraform and let GitHub Actions be the sole control plane. Do not maintain both.
-
-### 8. Redshift Connector — Low Priority
-
-**Status:** `backend/app/connectors/redshift_connector.py` is a stub — all methods raise `NotImplementedError`. The connector is registered but not exposed in the UI.
-
-**Fix:** Implement using `redshift-connector` or `psycopg2` (Redshift is Postgres wire-compatible). Add Redshift as an option in the frontend connector forms once done.
-
-### 9. Frontend Test Suite — Low Priority
-
-**Problem:** The frontend has no behavioral tests. Only typecheck and build are run in CI. Critical flows (connection onboarding, schema generation polling, error states) are untested.
-
-**Fix:** Add Playwright or Vitest tests for the main user flows: connect → generate → publish → query, connection switching, and error handling.
-
-### 10. Horizontal Scaling
-
-**Problem:** The backend is constrained to `--workers 1` due to the in-memory `GenerationJobManager`. The Terraform ECS module already supports multiple tasks, but running them would break job polling.
-
-**Fix:** Complete item 4 (job persistence) first, then increase `--workers` or desired ECS task count.
+**The benchmark** (`backend/eval/bench/`) needs its development databases loaded first: TPC-H on
+PostgreSQL, the MySQL employees sample, and the NYC taxi files. Its README explains the loaders and
+the harness. The sealed holdout is private and not in this repository.
+
+## Repository map
+
+| Path | What |
+|---|---|
+| `backend/app/agent/` | LangGraph agent: SQL-primary nodes, the compiler path, clarifications |
+| `backend/app/services/sql_checks.py` | The semantic checks on generated SQL |
+| `backend/app/semantic/` | Semantic layer models and the compiler |
+| `backend/app/grounding/` | Value index (dense + BM25 + trigram, fused with RRF) in Jammi |
+| `backend/eval/bench/` | Benchmark: cases, scorer, harness |
+| `frontend/` | Next.js UI and Playwright tests |
+| `docs/architecture/current-architecture.md` | The system as built, with its decision log |
+| `docs/ablation-results.md` | Every measurement, with commits and models |
+
+## Known issues
+
+- **Definitions need one click.** A question that spells out a definition ("including canceled
+  orders") still gets a one-click question. The app never decides a definition from the question's
+  wording or from the SQL the model wrote.
+- **Status questions use simple rules.** They apply to SUM and AVG of money-like measures, and look at
+  status columns on the amount's table or a direct parent. They offer "every status" or one status;
+  subsets can't be chosen.
+- **A rare save race.** If saving a connection-wide definition fails while another save is in flight,
+  the failed one can reappear after a restart. The answer is always kept for the conversation.
+  (`tests/test_definitions_verify2.py`, an expected failure.)
+- **The SQL checks have known limits.** They are not a proof against adversarial SQL; see
+  [current-architecture.md](docs/architecture/current-architecture.md) §5.2.
+
+## Not done
+
+These are future work:
+- a confirmation screen at publish (definitions are confirmed only through questions as they come up);
+- questions about gross vs net amounts, and about which date a period refers to;
+- entity identification beyond values;
+- an editable interpretation;
+- schema-change detection;
+- a deployment. A [deployment plan](docs/deployment-plan.md) is written but not done.
+
+There's no CI run yet.

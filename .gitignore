@@ -59,3 +59,14 @@ artifacts/
 *.tfstate.*
 *.tfvars
 *.tfvars.json
+
+# Jammi spike / Parquet exports
+backend/data/parquet/
+backend/spike/.jammi*/
+
+# Evaluation results are evidence for the README and results log: keep them.
+!backend/eval/results/
+
+# Playwright output
+frontend/test-results/
+frontend/playwright-report/

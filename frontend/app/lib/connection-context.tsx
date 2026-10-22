@@ -20,6 +20,9 @@ type ConnectionContextValue = {
   /** Active connection ID sent via X-Connection-Id header */
   activeConnectionId: string | null;
   setActiveConnection: (id: string) => void;
+  /** True while the bundled sample (Olist e-commerce, no connection header) is open. */
+  usingSample: boolean;
+  openSample: () => void;
   /** All connections belonging to the current user */
   connections: ConnectionProfile[];
   /** Re-fetch connections from the API */
@@ -35,10 +38,12 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
   const [connections, setConnections] = useState<ConnectionProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usingSample, setUsingSample] = useState(false);
 
   const reconcileConnections = useCallback(
     (list: ConnectionProfile[]) => {
       setConnections(list);
+      if (usingSample) return; // the sample stays open until another connection is chosen
       const stillValid = activeConnectionId
         ? list.find((conn) => conn.connection_id === activeConnectionId)
         : null;
@@ -56,7 +61,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       setActiveConnectionId(null);
       setMode("picker");
     },
-    [activeConnectionId, setMode],
+    [activeConnectionId, setMode, usingSample],
   );
 
   const refreshConnections = useCallback(async () => {
@@ -94,7 +99,15 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setActiveConnection = useCallback((id: string) => {
+    setUsingSample(false);
     setActiveConnectionId(id);
+    setMode("workspace");
+  }, []);
+
+  /** Questions without a connection go to the bundled sample on the backend ("default"). */
+  const openSample = useCallback(() => {
+    setUsingSample(true);
+    setActiveConnectionId(null);
     setMode("workspace");
   }, []);
 
@@ -105,6 +118,8 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
         setMode,
         activeConnectionId,
         setActiveConnection,
+        usingSample,
+        openSample,
         connections,
         refreshConnections,
         loading,

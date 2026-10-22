@@ -12,7 +12,7 @@ def build_chart_selector_node() -> Callable[[AgentState], AgentState]:
         rows = state.get("rows", [])
         row_count = state.get("row_count", 0)
 
-        if intent is None or row_count == 0:
+        if intent is None or row_count == 0 or all(row.get("metric_value") is None for row in rows):
             return {
                 "chart_spec": None,
                 "user_trace": ["No chart generated — query returned no data."],

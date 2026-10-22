@@ -36,13 +36,19 @@ _JSONL_PATH = Path(__file__).resolve().parents[2] / "data" / "feedback.jsonl"
 
 # ── Abstract Base ──────────────────────────────────────────────────────
 
+class FeedbackConflict(ValueError):
+    """The idempotency key is already used, by the same owner, for another query."""
+
+
 class BaseFeedbackStore(ABC):
-    """Storage contract for query feedback."""
+    """Storage contract for query feedback. Records belong to their owner: an idempotency key is
+    unique per owner and only ever updates that owner's record for the same query (review B15)."""
 
     @abstractmethod
     def upsert(
         self,
         *,
+        owner_id: str,
         query_id: str,
         rating: str,
         comment: str | None,
@@ -89,7 +95,7 @@ class JsonlFeedbackStore(BaseFeedbackStore):
     """
 
     def __init__(self) -> None:
-        self._records_by_idempotency_key: dict[str, _FeedbackInternal] = {}
+        self._records_by_idempotency_key: dict[tuple[str | None, str], _FeedbackInternal] = {}
         self._records: dict[str, _FeedbackInternal] = {}
         self._lock = Lock()
         self._jsonl_path = _JSONL_PATH
@@ -108,7 +114,7 @@ class JsonlFeedbackStore(BaseFeedbackStore):
                     internal = _FeedbackInternal(record=record)
                     self._records[record.feedback_id] = internal
                     if record.idempotency_key:
-                        self._records_by_idempotency_key[record.idempotency_key] = internal
+                        self._records_by_idempotency_key[(record.owner_id, record.idempotency_key)] = internal
         except Exception:
             pass  # corrupt JSONL doesn't crash startup; data already in memory is used
 
@@ -123,18 +129,22 @@ class JsonlFeedbackStore(BaseFeedbackStore):
     def upsert(
         self,
         *,
+        owner_id: str,
         query_id: str,
         rating: str,
         comment: str | None,
         idempotency_key: str | None,
     ) -> tuple[str, FeedbackRecord]:
         with self._lock:
-            if idempotency_key and idempotency_key in self._records_by_idempotency_key:
-                existing = self._records_by_idempotency_key[idempotency_key].record
+            key = (owner_id, idempotency_key) if idempotency_key else None
+            if key and key in self._records_by_idempotency_key:
+                existing = self._records_by_idempotency_key[key].record
+                if existing.query_id != query_id:
+                    raise FeedbackConflict("idempotency key already used for another query")
                 updated = existing.model_copy(update={"rating": rating, "comment": comment})
                 internal = _FeedbackInternal(record=updated)
                 self._records[updated.feedback_id] = internal
-                self._records_by_idempotency_key[idempotency_key] = internal
+                self._records_by_idempotency_key[key] = internal
                 self._append_to_jsonl(updated)
                 return "updated", updated
 
@@ -145,11 +155,12 @@ class JsonlFeedbackStore(BaseFeedbackStore):
                 comment=comment,
                 idempotency_key=idempotency_key,
                 created_at=datetime.now(timezone.utc),
+                owner_id=owner_id,
             )
             internal = _FeedbackInternal(record=feedback)
             self._records[feedback.feedback_id] = internal
-            if idempotency_key:
-                self._records_by_idempotency_key[idempotency_key] = internal
+            if key:
+                self._records_by_idempotency_key[key] = internal
             self._append_to_jsonl(feedback)
             return "created", feedback
 
@@ -165,6 +176,7 @@ class RDSFeedbackStore(BaseFeedbackStore):
     def upsert(
         self,
         *,
+        owner_id: str,
         query_id: str,
         rating: str,
         comment: str | None,
@@ -175,21 +187,23 @@ class RDSFeedbackStore(BaseFeedbackStore):
 
         sql = """
             INSERT INTO feedback (
-                feedback_id, query_id, rating, comment,
+                feedback_id, owner_id, query_id, rating, comment,
                 idempotency_key, created_at
             )
-            VALUES (%(feedback_id)s, %(query_id)s, %(rating)s, %(comment)s,
+            VALUES (%(feedback_id)s, %(owner_id)s, %(query_id)s, %(rating)s, %(comment)s,
                     %(idempotency_key)s, %(created_at)s)
-            ON CONFLICT (idempotency_key)
+            ON CONFLICT (owner_id, idempotency_key)
             DO UPDATE SET
                 rating     = EXCLUDED.rating,
                 comment    = EXCLUDED.comment
-            RETURNING feedback_id, query_id, rating, comment,
+            WHERE feedback.query_id = EXCLUDED.query_id
+            RETURNING feedback_id, owner_id, query_id, rating, comment,
                       idempotency_key, created_at,
                       (xmax = 0) AS inserted
         """
         params = {
             "feedback_id": feedback_id,
+            "owner_id": owner_id,
             "query_id": query_id,
             "rating": rating,
             "comment": comment,
@@ -201,6 +215,8 @@ class RDSFeedbackStore(BaseFeedbackStore):
             with conn.cursor() as cur:
                 cur.execute(sql, params)
                 row = cur.fetchone()
+        if row is None:  # the key exists for another query: the WHERE skipped the update
+            raise FeedbackConflict("idempotency key already used for another query")
 
         record = FeedbackRecord(
             feedback_id=row["feedback_id"],
@@ -209,6 +225,7 @@ class RDSFeedbackStore(BaseFeedbackStore):
             comment=row["comment"],
             idempotency_key=row["idempotency_key"],
             created_at=row["created_at"],
+            owner_id=row["owner_id"],
         )
         action = "created" if row["inserted"] else "updated"
         return action, record

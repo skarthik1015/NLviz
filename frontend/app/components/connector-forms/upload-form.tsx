@@ -2,6 +2,7 @@
 
 import { useState, useRef, type DragEvent } from "react";
 import { uploadFile } from "../../lib/api";
+import { creationNotices } from "./database-form";
 
 type Props = { onCreated: (connectionId: string) => void };
 
@@ -11,19 +12,20 @@ export function UploadForm({ onCreated }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [created, setCreated] = useState<{ id: string; notices: string[] } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(selected: File | null) {
     if (!selected) return;
     const ext = selected.name.split(".").pop()?.toLowerCase();
-    if (ext !== "csv" && ext !== "parquet") {
-      setError("Only CSV and Parquet files are supported");
+    if (ext !== "csv" && ext !== "xlsx" && ext !== "parquet") {
+      setError("Only CSV, Excel (.xlsx) and Parquet files are supported");
       return;
     }
     setFile(selected);
     setError(null);
     if (!displayName) {
-      setDisplayName(selected.name.replace(/\.(csv|parquet)$/i, ""));
+      setDisplayName(selected.name.replace(/\.(csv|xlsx|parquet)$/i, ""));
     }
   }
 
@@ -40,7 +42,12 @@ export function UploadForm({ onCreated }: Props) {
     setError(null);
     try {
       const result = await uploadFile(file, displayName || file.name);
-      onCreated(result.connection_id);
+      const notices = creationNotices(result);
+      if (notices.length) {
+        setCreated({ id: result.connection_id, notices });  // let the user read them first
+      } else {
+        onCreated(result.connection_id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -56,6 +63,22 @@ export function UploadForm({ onCreated }: Props) {
     fontSize: "0.9rem",
     background: "var(--surface, #fff)",
   };
+
+  if (created) {
+    return (
+      <div>
+        <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 16 }}>Uploaded</h2>
+        <ul style={{ margin: "0 0 16px", paddingLeft: 20, fontSize: "0.85rem" }}>
+          {created.notices.map((notice) => (
+            <li key={notice}>{notice}</li>
+          ))}
+        </ul>
+        <button className="button" type="button" onClick={() => onCreated(created.id)}>
+          Continue to schema generation
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -80,7 +103,7 @@ export function UploadForm({ onCreated }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept=".csv,.parquet"
+          accept=".csv,.xlsx,.parquet"
           style={{ display: "none" }}
           onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
         />
@@ -90,7 +113,7 @@ export function UploadForm({ onCreated }: Props) {
           </p>
         ) : (
           <p style={{ color: "var(--muted)", fontSize: "0.95rem" }}>
-            Drop a CSV or Parquet file here, or click to browse
+            Drop a CSV, Excel or Parquet file here, or click to browse
           </p>
         )}
       </div>

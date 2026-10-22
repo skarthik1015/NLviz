@@ -13,7 +13,7 @@ export default function HomePage() {
     return (
       <main className="shell">
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-          <p style={{ color: "var(--muted)", fontSize: "1.1rem" }}>Loading...</p>
+          <p role="status" style={{ color: "var(--muted)", fontSize: "1.1rem" }}>Loading your connections…</p>
         </div>
       </main>
     );

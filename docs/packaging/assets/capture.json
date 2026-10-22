@@ -1,0 +1,101 @@
+{
+  "captured_at": "2026-10-20T18:33:50.809Z",
+  "frontend_repository_head": "d16d7ef8a0270351a5fc07df58f15cab32dfdaf2",
+  "frontend": "running Compose frontend (image in backend-fingerprint.json)",
+  "backend": "running Compose image; source/image fingerprints are recorded in backend-fingerprint.json",
+  "model": "qwen3:4b-instruct-8k",
+  "answer_path": "sql",
+  "model_preflight": "backend-fingerprint.json; all task overrides checked before capture",
+  "browser": "Chromium / Playwright",
+  "preview": null,
+  "api_mocked": false,
+  "sidebar": "collapsed using existing UI control after every connection selection; connections not deleted",
+  "complete": true,
+  "observations": [
+    {
+      "flow": "definition: exclude cancelled/unavailable",
+      "question": "What is the total revenue?",
+      "choices": "Leave out cancelled, unavailable (order status) (the data model's guess)\nCount every row (no condition)\nUse this definition for every question on this connection (otherwise only this conversation)",
+      "interpretation": "Interpretation\n\nRead from the SQL below, checked against the data model's definitions\n\nComputed\nTotal Revenue (SUM)\nDefinition\nSUM(op.payment_value) where orders.order_status NOT IN ('cancelled', 'unavailable')\nDescription\nSum of payment value for all non-cancelled orders\nFilters\nCondition NOT orders.order_status IN ('cancelled', 'unavailable')\nGrouping\nNone\nPeriod\nAll dates\nOrder\nAs returned\nLimit\nNone\nPolicies\nLeave out cancelled, unavailable (order status) conversation",
+      "remember": false
+    },
+    {
+      "flow": "definition: all rows",
+      "question": "What is the total revenue?",
+      "interpretation": "Interpretation\n\nRead from the SQL below, checked against the data model's definitions\n\nComputed\nTotal Revenue (SUM)\nDefinition\nSUM(op.payment_value) over every row\nFilters\nNone\nGrouping\nNone\nPeriod\nAll dates\nOrder\nAs returned\nLimit\nNone\nPolicies\nCount every row (no condition) conversation",
+      "remember": false
+    },
+    {
+      "flow": "answer",
+      "question": "Revenue by state, top 5",
+      "checked_sql": true,
+      "chart_title": "Total Revenue",
+      "answered_by": "SQL written by the model, checked against the data model"
+    },
+    {
+      "flow": "mobile",
+      "sidebar": "collapsed using existing UI control",
+      "viewport": 390,
+      "document": 390,
+      "composer": {
+        "x": 68,
+        "y": 358.75,
+        "width": 306,
+        "height": 580.234375,
+        "top": 358.75,
+        "right": 374,
+        "bottom": 938.984375,
+        "left": 68
+      }
+    },
+    {
+      "flow": "currency clarification",
+      "question": "average cost for two",
+      "choices": "Break down by Currency\nIndian Rupees(Rs.)\nDollar($)\nPounds(��)\nBrazilian Real(R$)\nEmirati Diram(AED)\nRand(R)"
+    },
+    {
+      "flow": "refusal",
+      "question": "Will it rain tomorrow?",
+      "explanation": "Not something this data can answer\n\nI can't answer this from the data: The database does not contain any weather or environmental data, including information about rainfall."
+    }
+  ],
+  "errors": [],
+  "artifacts": [
+    {
+      "name": "answer-chart-interpretation.png",
+      "sha256": "182359323d1abde191e625af3ef20e4b9ca76105f3c04d55d8037012390b3966"
+    },
+    {
+      "name": "currency-clarification.png",
+      "sha256": "ca4417b06ce3388ba203b992eded1cad982f8d29e005a06ed83abfd34b48fe87"
+    },
+    {
+      "name": "definition-all-rows-answer.png",
+      "sha256": "24200c57b514ee92ad8175c499635b064dc340364702cea8140cb1b42be23b01"
+    },
+    {
+      "name": "definition-filtered-answer.png",
+      "sha256": "84536fb6c9c30d6976799865d7f245f0878a642271c3fb28fb4308e4d81ac078"
+    },
+    {
+      "name": "definition-question.png",
+      "sha256": "07b27ba772a1e8ab335347b7d2a2094df47fd8cda8044920344de78d7919e3d0"
+    },
+    {
+      "name": "demo.webm",
+      "sha256": "5c7fb1a87d58054e8a54ed74baad6b93837d723625c9cada5c0366407906b291"
+    },
+    {
+      "name": "mobile-answer.png",
+      "sha256": "7599806e9c0f92112e9d8227e103bc117cefc118f65fb9bcffb29b0b49f95f0a"
+    },
+    {
+      "name": "query-in-progress.png",
+      "sha256": "b5a6d6cf6337ce609e7e62c3a1cd10632d4c46a0329470d9bb82a6303987dcf1"
+    },
+    {
+      "name": "unsupported.png",
+      "sha256": "0a883028810eb56d99ad8ef48a51dcc227465f1a228809ee5bb5e30b214517ef"
+    }
+  ]
+}

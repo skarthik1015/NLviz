@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from app.connectors.base import DataConnector
 from app.models.connection import GenerationJob, SemanticSchemaVersion
-from app.services.connection_store import ConnectionStore
+from app.services.connection_store import BaseConnectionStore
 from app.services.schema_generator import generate_semantic_schema
 from app.services.intent_mapper import IntentMapperConfig
 
@@ -25,7 +25,7 @@ _MAX_CONCURRENT_JOBS = 3
 class GenerationJobManager:
     def __init__(
         self,
-        connection_store: ConnectionStore,
+        connection_store: BaseConnectionStore,
         schema_storage: "BaseSchemaStorage | None" = None,
         max_workers: int = _MAX_CONCURRENT_JOBS,
     ):

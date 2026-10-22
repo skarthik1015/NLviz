@@ -14,42 +14,48 @@ export function SchemaGenerationStatus({ connectionId, onPublished, onBack }: Pr
   const [status, setStatus] = useState<JobStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
-  const startedRef = useRef(false);
+  // One generation job per connection, created once even when the effect runs twice (React Strict
+  // Mode) or re-runs. Polling is separate: every effect run polls the current job and its cleanup
+  // stops only that poll. A single "started" flag skipped the second run's poll after the first
+  // run's cleanup had cancelled it, leaving the screen running forever (review B17).
+  const jobRef = useRef<{ connectionId: string; jobId: Promise<string> } | null>(null);
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    (async () => {
+    if (jobRef.current?.connectionId !== connectionId) {
+      setStatus(null);
+      setError(null);
+      jobRef.current = { connectionId, jobId: generateSchema(connectionId).then((gen) => gen.job_id) };
+    }
+    const job = jobRef.current;
+
+    const poll = async (jobId: string) => {
+      if (cancelled) return;
       try {
-        // 1. Kick off generation
-        const gen = await generateSchema(connectionId);
-        const jobId = gen.job_id;
-
-        // 2. Poll for completion
-        const poll = async () => {
-          if (cancelled) return;
-          try {
-            const job = await getJobStatus(connectionId, jobId);
-            setStatus(job);
-            if (job.status === "queued" || job.status === "running") {
-              setTimeout(poll, 3000);
-            } else if (job.status === "failed") {
-              setError(job.error ?? "Schema generation failed");
-            }
-          } catch (err) {
-            if (!cancelled) setError(err instanceof Error ? err.message : "Failed to check status");
-          }
-        };
-        poll();
+        const next = await getJobStatus(connectionId, jobId);
+        if (cancelled) return;
+        setStatus(next);
+        if (next.status === "queued" || next.status === "running") {
+          timer = setTimeout(() => poll(jobId), 3000);
+        } else if (next.status === "failed") {
+          setError(next.error ?? "Schema generation failed");
+        }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to start schema generation");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to check status");
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
+    job.jobId.then(poll, (err: unknown) => {
+      if (jobRef.current === job) jobRef.current = null; // let a later run try again
+      if (!cancelled) setError(err instanceof Error ? err.message : "Failed to start schema generation");
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [connectionId]);
 
   async function handlePublish() {
@@ -101,9 +107,19 @@ export function SchemaGenerationStatus({ connectionId, onPublished, onBack }: Pr
           marginBottom: 20,
         }}>
           <p style={{ fontWeight: 600, marginBottom: 8 }}>Validation Summary</p>
+          {status.validation_summary.published_metrics != null && (
+            <p style={{ fontSize: "0.85rem", marginBottom: 8 }}>
+              Ready to publish: {status.validation_summary.published_metrics} metrics,{" "}
+              {status.validation_summary.published_dimensions ?? 0} breakdowns,{" "}
+              {status.validation_summary.published_time_dimensions ?? 0} dates
+              {status.validation_summary.published_filter_columns
+                ? `, ${status.validation_summary.published_filter_columns} filter columns`
+                : ""}
+            </p>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: "0.85rem" }}>
-            <div>Metrics: {status.validation_summary.valid_metrics} / {status.validation_summary.total_metrics}</div>
-            <div>Dimensions: {status.validation_summary.valid_dimensions} / {status.validation_summary.total_dimensions}</div>
+            <div>Proposed metrics that ran: {status.validation_summary.valid_metrics} / {status.validation_summary.total_metrics}</div>
+            <div>Proposed breakdowns that ran: {status.validation_summary.valid_dimensions} / {status.validation_summary.total_dimensions}</div>
             <div style={{ gridColumn: "span 2" }}>
               Confidence: {(status.validation_summary.confidence_score * 100).toFixed(0)}%
             </div>

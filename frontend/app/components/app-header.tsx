@@ -7,7 +7,7 @@ import { useConnection } from "../lib/connection-context";
 import type { User } from "../lib/types";
 
 export function AppHeader() {
-  const { activeConnectionId, connections } = useConnection();
+  const { activeConnectionId, connections, usingSample, mode } = useConnection();
   const [user, setUser] = useState<User | null>(null);
   const activeConnection = connections.find((c) => c.connection_id === activeConnectionId);
 
@@ -16,7 +16,7 @@ export function AppHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border/30 bg-background/80 px-5 py-3 backdrop-blur-sm">
+    <header className="app-header sticky top-0 z-50 flex items-center justify-between border-b border-border/30 bg-background/80 px-5 py-3 backdrop-blur-sm">
       <div className="flex items-center gap-4">
         <span
           className="text-base font-bold text-foreground"
@@ -25,6 +25,12 @@ export function AppHeader() {
           NL Query Tool
         </span>
 
+        {usingSample && mode === "workspace" && (
+          <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 backdrop-blur-sm">
+            <Database className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm text-foreground">Sample data: Olist e-commerce</span>
+          </div>
+        )}
         {activeConnection && (
           <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/60 px-3 py-1.5 backdrop-blur-sm">
             <Database className="h-3.5 w-3.5 text-primary" />
@@ -34,6 +40,19 @@ export function AppHeader() {
             <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
               {activeConnection.connector_type}
             </span>
+            {activeConnection.mode === "snapshot" && (
+              <span
+                className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-xs font-semibold text-amber-700"
+                title={[
+                  activeConnection.copied_at
+                    ? `Copied ${new Date(activeConnection.copied_at).toLocaleString()}`
+                    : "Copied when connected",
+                  ...(activeConnection.notes ?? []),
+                ].join("\n")}
+              >
+                snapshot
+              </span>
+            )}
           </div>
         )}
       </div>

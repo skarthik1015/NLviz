@@ -4,3 +4,10 @@ __pycache__
 .pytest_cache
 pytest-cache-files-*
 data/raw
+# Local state that must never be baked into the image (secrets, user uploads, generated data)
+data/.secrets
+data/uploads
+data/parquet
+data/schemas
+spike/.jammi*
+.env
