@@ -3,9 +3,9 @@
 
 | Arm | Model | Application commit | Turns | Correct first answer | Wrong first answer | Final correct |
 |---|---|---|---|---|---|---|
-| SQL-primary (`/chat`) | local Qwen (configured as `qwen3:4b-instruct-8k`) | `8734f317bad61dd7d3372829f890c9ea6e7ce23d` | 139 | 63 | 42 | 81 |
+| SQL-primary (`/chat`) | local Qwen (configured as `qwen3:4b-instruct-8k`) | `68b54eccd5793db9ff882e452c271901d01d6361` | 139 | 63 | 42 | 81 |
 
-Recorded 2026-10-21; source artifact label `fix19_qwen-definitions`. The commit is the code/result record's
+Recorded 2026-10-22; source artifact label `fix19_qwen-definitions`. The commit is the code/result record's
 introduction commit, not a runtime Git attestation. These are selected counts, not a complete
 first-response outcome distribution. Final correctness includes the scripted clarification path.
 Definitions were generated/inferred. See the source for which checks fired in each experiment.
@@ -18,7 +18,7 @@ Definition enforcement: the review blockers are fixed; one known issue (a rare s
 This is a local portfolio demo; the development set has guided implementation changes.
 Turns within a conversation are related, not independent trials.
 
-Source: [ablation-results.md](../ablation-results.md), source-document commit `1c0a5a759327e3334b4a575cf14172cf3a3bf991`.
+Source: [ablation-results.md](../ablation-results.md), source-document commit `68b54eccd5793db9ff882e452c271901d01d6361`.
 Source-document SHA-256: `ebac06d2f5f15fa09346d102241735913a2a73f283fed6ca7daf53aa2f698e00`.
 Scorer: strict-count/required-clarification repository scorer (`fe2dc27` lineage), current source
 SHA-256 `18c7ac391165eacee45a2886fdbf1887b6e6d41e8a0a9f7731d7af440875aeb6`. This fingerprint records the scorer
