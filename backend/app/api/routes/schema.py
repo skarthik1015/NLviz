@@ -1,17 +1,26 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.connectors.base import SchemaContext
-from app.dependencies import get_connector, get_schema_context, get_semantic_registry
+from app.dependencies import (
+    _resolve_connection_id,
+    get_connector,
+    get_grounding,
+    get_schema_context,
+    get_semantic_registry,
+)
 from app.models import SchemaResponse
 from app.security.auth import AuthUser, get_current_user
 from app.semantic import SemanticRegistry
+from app.semantic.suggestions import suggested_questions
 
 router = APIRouter(tags=["schema"])
 
 
 @router.get("/schema", response_model=SchemaResponse)
 async def get_schema(
+    request: Request,
     connector=Depends(get_connector),
+    grounding=Depends(get_grounding),
     schema_ctx: SchemaContext = Depends(get_schema_context),
     registry: SemanticRegistry = Depends(get_semantic_registry),
     _user: AuthUser = Depends(get_current_user),
@@ -38,4 +47,6 @@ async def get_schema(
             {"name": time_dim.name, "display_name": time_dim.display_name}
             for time_dim in registry.schema.time_dimensions
         ],
+        suggested_questions=suggested_questions(registry),
+        grounding=grounding.status(_resolve_connection_id(request)) if grounding is not None else "off",
     )

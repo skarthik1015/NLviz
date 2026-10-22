@@ -2,13 +2,17 @@ from contextlib import asynccontextmanager
 import importlib
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import build_api_router
 from app.config import AppConfig
 from app.dependencies import build_all_services
-from app.rate_limit import RateLimitMiddleware
+from app.rate_limit import QueryLimiter
+from app.observability import Observability, configure as configure_observability
+from app.observability.health import health_details
+from app.observability.middleware import QuestionLoggingMiddleware, capture_authenticated_user
+from app.observability.service import configure_json_logging
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +22,11 @@ async def lifespan(app: FastAPI):
     _ensure_runtime_dependencies()
 
     config = AppConfig.from_env()
+    config.check()
 
     # ── Configure logging ─────────────────────────────────────────────
     logging.basicConfig(level=getattr(logging, config.log_level.upper(), logging.INFO))
+    configure_json_logging()
 
     # ── Optional infrastructure (absent in local dev) ─────────────────
     pool = None
@@ -52,9 +58,17 @@ async def lifespan(app: FastAPI):
         schema_storage = LocalSchemaStorage()
 
     # ── Build all services ────────────────────────────────────────────
-    services = build_all_services(config=config, pool=pool, schema_storage=schema_storage)
+    services = build_all_services(
+        config=config, pool=pool, schema_storage=schema_storage, upload_storage=upload_storage
+    )
 
     app.state.config = config
+    app.state.database_pool = pool
+    app.state.observability = Observability.from_env(pool=pool)
+    # app.llm meters every provider attempt (raw, structured and each Instructor retry, SDK retries
+    # off): tests/test_llm_spend_hooks.py. The cap is enforced.
+    app.state.observability.hooks_integrated = True
+    configure_observability(app.state.observability)
     app.state.upload_storage = upload_storage
     app.state.schema_storage = schema_storage
     # Core services
@@ -65,6 +79,10 @@ async def lifespan(app: FastAPI):
     app.state.audit_log = services["audit_log"]
     app.state.feedback_store = services["feedback_store"]
     app.state.intent_config = services["intent_config"]
+    app.state.jammi_provisioner = services["jammi_provisioner"]
+    app.state.jammi_upload_store = services["jammi_upload_store"]
+    app.state.grounding = services["grounding"]
+    app.state.checkpointer = services["checkpointer"]
     # Backward compat: expose default runtime's services directly
     app.state.connector = services["connector"]
     app.state.schema_context = services["schema_context"]
@@ -83,8 +101,13 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        configure_observability(None)
         if hasattr(app.state, "job_manager"):
             app.state.job_manager.shutdown()
+        if getattr(app.state, "grounding", None) is not None:
+            app.state.grounding.shutdown()
+        if getattr(app.state, "checkpointer", None) is not None:
+            app.state.checkpointer.close()
         if hasattr(app.state.connector, "close"):
             app.state.connector.close()
         if pool:
@@ -105,12 +128,12 @@ config = AppConfig.from_env()
 
 app = FastAPI(title="NL Query Tool API", version="0.1.0", lifespan=lifespan)
 
-# NOTE: Starlette middleware is LIFO — last added runs outermost.
-# RateLimitMiddleware must be added first so CORS headers are always present,
-# even on 429 responses (otherwise browsers report NetworkError instead of 429).
+# Per-user question limits, applied by the question routes once the user is known.
+app.state.query_limiter = QueryLimiter(requests_per_minute=config.rate_limit_rpm,
+                                       max_concurrent=config.max_concurrent_questions)
 app.add_middleware(
-    RateLimitMiddleware,
-    requests_per_minute=config.rate_limit_rpm,
+    QuestionLoggingMiddleware,
+    api_prefix=config.api_prefix,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -119,7 +142,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(build_api_router(), prefix=config.api_prefix)
+app.include_router(build_api_router(), prefix=config.api_prefix,
+                   dependencies=[Depends(capture_authenticated_user)])
+app.add_api_route("/health/details", health_details, methods=["GET"])
 
 
 @app.get("/healthz")

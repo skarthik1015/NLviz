@@ -36,7 +36,8 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         dimensions=(),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("SUM(op.payment_value) AS metric_value", "LEFT JOIN order_payments op"),
+        sql_contains=("SUM(op.payment_value) AS metric_value", "FROM order_payments op",
+                      "NOT IN ('canceled', 'unavailable')"),
     ),
     GoldenCase(
         question="Show revenue by customer state",
@@ -68,7 +69,9 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         dimensions=("payment_type",),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("AVG(op.payment_value) AS metric_value", "op.payment_type AS payment_type"),
+        # Payments per order, not the mean payment row (one order paid 60 + 40 is 100, not 50).
+        sql_contains=("(SUM(op.payment_value))::DOUBLE / NULLIF((COUNT(DISTINCT orders.order_id)), 0) AS metric_value",
+                      "op.payment_type AS payment_type"),
     ),
     GoldenCase(
         question="Show review score by product category",
@@ -76,7 +79,8 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         dimensions=("product_category",),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("AVG(r.review_score) AS metric_value", "GROUP BY p.product_category_name_english"),
+        sql_contains=("p.product_category_name_english AS product_category",
+                      "orders.order_id AS _grain_0", "AVG(_value) AS metric_value"),
     ),
     GoldenCase(
         question="Show delivery time by seller state",
@@ -84,7 +88,9 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         dimensions=("seller_state",),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("s.seller_state AS seller_state", "AVG(DATEDIFF('day'"),
+        # Per order: an order with three items from one state counts once there (second review).
+        sql_contains=("s.seller_state AS seller_state", "orders.order_id AS _grain_0",
+                      "AVG(_value) AS metric_value"),
     ),
     GoldenCase(
         question="Show cancellation rate by order status",
@@ -175,12 +181,14 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         sql_contains=("c.customer_id AS customer_id", "ORDER BY metric_value ASC", "LIMIT 3"),
     ),
     GoldenCase(
+        # Payments are per order and one order has several items: by category the payments would be
+        # counted once per item, so the per-item amount is used (with a note).
         question="Revenue in 2018 by product category",
-        metric="total_revenue",
+        metric="item_sales",
         dimensions=("product_category",),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("p.product_category_name_english AS product_category", ">= '2018-01-01'", "<= '2018-12-31'"),
+        sql_contains=("p.product_category_name_english AS product_category", ">= '2018-01-01'", "< '2019-01-01'"),
     ),
     GoldenCase(
         question="How many orders were placed in 2017",
@@ -188,7 +196,7 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         dimensions=(),
         time_dimension=None,
         order_by="metric_desc",
-        sql_contains=("COUNT(DISTINCT orders.order_id) AS metric_value", ">= '2017-01-01'", "<= '2017-12-31'"),
+        sql_contains=("COUNT(DISTINCT orders.order_id) AS metric_value", ">= '2017-01-01'", "< '2018-01-01'"),
     ),
 )
 
@@ -262,7 +270,7 @@ def _evaluate_case(case: GoldenCase) -> tuple[bool, str]:
         response.trace[0].startswith("Understood:"),
         "SQL compiled from semantic model" in response.trace,
         any(msg.startswith("Query executed:") for msg in response.trace),
-        connector.executed_sql == [response.sql],
+        connector.executed_sql[-1:] == [response.sql],  # last: the fan-out check may probe totals first
         all(fragment in response.sql for fragment in case.sql_contains),
     ]
     if all(checks):

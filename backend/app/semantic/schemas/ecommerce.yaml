@@ -19,14 +19,20 @@ tables:
     description: "Product details and category"
 
 joins:
-  - from: orders
-    to: order_items
+  # Written child -> parent with relationship many_to_one, so the fan-out check knows which way a
+  # join repeats rows: one order has several items and several payments. Reviews are left unknown:
+  # 99.2k reviews over 98.7k orders, close enough to one per order that annotating them would refuse
+  # every review breakdown for a 0.5% effect.
+  - from: order_items
+    to: orders
     "on": "orders.order_id = order_items.order_id"
     type: LEFT
-  - from: orders
-    to: order_payments
+    relationship: many_to_one
+  - from: order_payments
+    to: orders
     "on": "orders.order_id = order_payments.order_id"
     type: LEFT
+    relationship: many_to_one
   - from: orders
     to: order_reviews
     "on": "orders.order_id = order_reviews.order_id"
@@ -35,23 +41,33 @@ joins:
     to: customers
     "on": "orders.customer_id = customers.customer_id"
     type: LEFT
+    relationship: many_to_one
   - from: order_items
     to: sellers
     "on": "order_items.seller_id = sellers.seller_id"
     type: LEFT
+    relationship: many_to_one
   - from: order_items
     to: products
     "on": "order_items.product_id = products.product_id"
     type: LEFT
+    relationship: many_to_one
 
 metrics:
   - name: total_revenue
     display_name: "Total Revenue"
-    description: "Sum of payment value for all non-cancelled orders"
+    description: "Sum of payments for orders that were not canceled or unavailable"
     aggregation: SUM
     sql_expression: "op.payment_value"
-    required_tables: ["orders", "order_payments op"]
-    base_filter: "orders.order_status NOT IN ('cancelled', 'unavailable')"
+    required_tables: ["order_payments op", "orders"]
+    base_filter: "orders.order_status NOT IN ('canceled', 'unavailable')"
+  - name: item_sales
+    display_name: "Item Sales"
+    description: "Item price plus freight, summed over line items"
+    aggregation: SUM
+    sql_expression: "order_items.price + order_items.freight_value"
+    required_tables: ["order_items", "orders"]
+    base_filter: "orders.order_status NOT IN ('canceled', 'unavailable')"
   - name: order_count
     display_name: "Number of Orders"
     description: "Count of distinct orders"
@@ -61,31 +77,35 @@ metrics:
     base_filter: null
   - name: average_order_value
     display_name: "Average Order Value"
-    description: "Mean payment value per order"
-    aggregation: AVG
-    sql_expression: "op.payment_value"
-    required_tables: ["orders", "order_payments op"]
-    base_filter: "orders.order_status NOT IN ('cancelled', 'unavailable')"
+    description: "Payments per order: the sum of payments divided by the number of orders, for orders that were not canceled or unavailable"
+    aggregation: RATIO
+    numerator_sql: "SUM(op.payment_value)"
+    denominator_sql: "COUNT(DISTINCT orders.order_id)"
+    required_tables: ["order_payments op", "orders"]
+    base_filter: "orders.order_status NOT IN ('canceled', 'unavailable')"
   - name: average_review_score
     display_name: "Average Review Score"
     description: "Mean customer review score from 1 to 5"
     aggregation: AVG
     sql_expression: "r.review_score"
-    required_tables: ["orders", "order_reviews r"]
+    required_tables: ["order_reviews r", "orders"]
     base_filter: "r.review_score IS NOT NULL"
   - name: average_delivery_days
     display_name: "Average Delivery Time (Days)"
     description: "Mean days from purchase to delivery"
     aggregation: AVG
-    sql_expression: "DATEDIFF('day', orders.order_purchase_timestamp, orders.order_delivered_customer_date)"
+    # Day-boundary count, identical to DuckDB's DATEDIFF('day', a, b) and portable to DataFusion,
+    # which has no datediff (see backend/spike/golden_parity/datediff_candidates.py).
+    sql_expression: "CAST(orders.order_delivered_customer_date AS DATE) - CAST(orders.order_purchase_timestamp AS DATE)"
     required_tables: ["orders"]
     base_filter: "orders.order_delivered_customer_date IS NOT NULL"
   - name: cancellation_rate
     display_name: "Cancellation Rate"
-    description: "Percentage of orders that were cancelled"
+    description: "Share of orders that were canceled"
     aggregation: RATIO
-    numerator_sql: "COUNT(CASE WHEN orders.order_status = 'cancelled' THEN 1 END)"
-    denominator_sql: "COUNT(orders.order_id)"
+    # COUNT DISTINCT on both sides: by product category each order counts once, not once per item.
+    numerator_sql: "COUNT(DISTINCT CASE WHEN orders.order_status = 'canceled' THEN orders.order_id END)"
+    denominator_sql: "COUNT(DISTINCT orders.order_id)"
     required_tables: ["orders"]
     base_filter: null
 
@@ -95,11 +115,40 @@ dimensions:
     sql_expression: "p.product_category_name_english"
     required_tables: ["order_items", "products p"]
     cardinality: medium
+    alias_expression: "p.product_category_name"  # Portuguese name: grounding matches it too
   - name: customer_state
     display_name: "Customer State"
     sql_expression: "c.customer_state"
     required_tables: ["orders", "customers c"]
     cardinality: low
+    synonyms: &brazil_states
+      AC: ["Acre"]
+      AL: ["Alagoas"]
+      AP: ["Amapá"]
+      AM: ["Amazonas"]
+      BA: ["Bahia"]
+      CE: ["Ceará"]
+      DF: ["Distrito Federal", "Brasília"]
+      ES: ["Espírito Santo"]
+      GO: ["Goiás"]
+      MA: ["Maranhão"]
+      MT: ["Mato Grosso"]
+      MS: ["Mato Grosso do Sul"]
+      MG: ["Minas Gerais"]
+      PA: ["Pará"]
+      PB: ["Paraíba"]
+      PR: ["Paraná"]
+      PE: ["Pernambuco"]
+      PI: ["Piauí"]
+      RJ: ["Rio de Janeiro"]
+      RN: ["Rio Grande do Norte"]
+      RS: ["Rio Grande do Sul"]
+      RO: ["Rondônia"]
+      RR: ["Roraima"]
+      SC: ["Santa Catarina"]
+      SP: ["São Paulo"]
+      SE: ["Sergipe"]
+      TO: ["Tocantins"]
   - name: customer_id
     display_name: "Customer ID"
     sql_expression: "c.customer_id"
@@ -110,16 +159,31 @@ dimensions:
     sql_expression: "s.seller_state"
     required_tables: ["order_items", "sellers s"]
     cardinality: low
+    synonyms: *brazil_states
   - name: payment_type
     display_name: "Payment Method"
     sql_expression: "op.payment_type"
-    required_tables: ["orders", "order_payments op"]
+    required_tables: ["order_payments op", "orders"]
     cardinality: low
+    synonyms:
+      credit_card: ["credit card", "cartão de crédito", "card"]
+      debit_card: ["debit card", "cartão de débito"]
+      boleto: ["bank slip", "boleto bancário", "invoice"]
+      voucher: ["coupon", "gift card", "vale", "cupom"]
   - name: order_status
     display_name: "Order Status"
     sql_expression: "orders.order_status"
     required_tables: ["orders"]
     cardinality: low
+    synonyms:
+      delivered: ["entregue", "completed"]
+      canceled: ["cancelled", "cancelado"]
+      shipped: ["in transit", "enviado", "dispatched"]
+      unavailable: ["out of stock", "indisponível"]
+      invoiced: ["billed", "faturado"]
+      processing: ["in progress", "em processamento"]
+      approved: ["aprovado"]
+      created: ["new", "criado"]
   - name: review_score
     display_name: "Review Score"
     sql_expression: "r.review_score"

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import uvicorn
 
+from export_demo_parquet import export as export_demo_parquet
 from seed import seed
 
 
@@ -17,6 +18,12 @@ def main() -> None:
         seed()
     else:
         print(f"DuckDB file found at {db_path}. Skipping seed.")
+
+    # Compose: write the demo tables where jammi-server reads them (a shared volume).
+    demo_dir = os.getenv("DEMO_PARQUET_EXPORT_DIR")
+    if demo_dir:
+        exported = export_demo_parquet(Path(demo_dir))
+        print(f"Demo Parquet in {demo_dir}: exported {exported or 'nothing (already present)'}")
 
     uvicorn.run(
         "app.main:app",

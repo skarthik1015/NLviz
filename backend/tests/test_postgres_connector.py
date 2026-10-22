@@ -44,20 +44,6 @@ def _build_connector(schema_name: str) -> PostgresConnector:
     return connector
 
 
-def test_postgres_connector_qualifies_schema_for_sampling_queries():
-    connector = _build_connector("analytics")
-    conn = RecordingConnection(
-        [
-            [("customer_id", "text", "YES")],
-            [("sample",)],
-        ]
-    )
-
-    connector._get_columns(conn, "orders")
-
-    assert any('FROM "analytics"."orders"' in stmt for stmt in conn.cursor_instance.statements)
-
-
 def test_postgres_connector_qualifies_schema_for_row_counts():
     connector = _build_connector("analytics")
     conn = RecordingConnection(
@@ -73,16 +59,54 @@ def test_postgres_connector_qualifies_schema_for_row_counts():
     assert any('SELECT COUNT(*) FROM "analytics"."orders"' in stmt for stmt in conn.cursor_instance.statements)
 
 
-def test_postgres_connector_qualifies_schema_for_distinct_counts():
+def test_the_preview_reads_columns_without_sampling_or_scanning_values():
     connector = _build_connector("analytics")
-    conn = RecordingConnection(
-        [
-            [],
-            [(3,)],
-        ]
-    )
+    conn = RecordingConnection([
+        [("orders",)],                                                    # tables
+        [("orders", "order_id", "text", "NO"), ("orders", "total", "numeric", "YES")],  # columns
+        [(0,)], [(2,)],                                                   # row estimate, exact count
+    ])
+    connector._connect = lambda: type("C", (), {"cursor": conn.cursor, "close": lambda self: None})()
 
-    counts = connector._get_distinct_counts(conn, "orders", [{"name": "customer_id"}])
+    schema = connector.get_schema()
 
-    assert counts == {"customer_id": 3}
-    assert any('FROM "analytics"."orders"' in stmt for stmt in conn.cursor_instance.statements)
+    assert [c["name"] for c in schema.tables["orders"]] == ["order_id", "total"]
+    assert schema.row_counts == {"orders": 2}
+    statements = conn.cursor_instance.statements
+    assert not any("DISTINCT" in s.upper() or "foreign key" in s.lower() for s in statements)
+
+
+def test_sslmode_reaches_the_driver(monkeypatch):
+    import sys
+    import types
+
+    import pytest
+
+    seen = {}
+    fake = types.SimpleNamespace(connect=lambda **kwargs: seen.update(kwargs))
+    monkeypatch.setitem(sys.modules, "psycopg2", fake)
+    params = {"host": "h", "dbname": "d", "user": "u", "password": "p"}
+    PostgresConnector({**params, "sslmode": "verify-full"})._connect()
+    assert seen["sslmode"] == "verify-full"
+    with pytest.raises(ValueError, match="sslmode"):
+        PostgresConnector({**params, "sslmode": "sometimes"})
+
+
+def test_mysql_ssl_mode_reaches_the_driver(monkeypatch):
+    import ssl
+    import sys
+    import types
+
+    from app.connectors.mysql_connector import MySQLConnector
+
+    seen = {}
+    monkeypatch.setitem(sys.modules, "pymysql", types.SimpleNamespace(connect=lambda **kw: seen.update(kw)))
+    params = {"host": "h", "dbname": "d", "user": "u", "password": "p"}
+    MySQLConnector({**params, "ssl_mode": "verify_identity"})._connect()
+    assert isinstance(seen["ssl"], ssl.SSLContext) and seen["ssl"].check_hostname
+    seen.clear()
+    MySQLConnector({**params, "ssl_mode": "required"})._connect()
+    assert seen["ssl"].verify_mode == ssl.CERT_NONE
+    seen.clear()
+    MySQLConnector(params)._connect()
+    assert "ssl" not in seen

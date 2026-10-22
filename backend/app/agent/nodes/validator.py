@@ -14,21 +14,19 @@ def build_validator_node() -> Callable[[AgentState], AgentState]:
         intent = state.get("intent")
         retry_count = state.get("retry_count", 0)
 
-        # Case 1: empty result — retry if fixable (date filters are present)
-        if row_count == 0:
+        # Case 1: empty result. A total over no matching rows is one NULL row ("market cap of Apple"
+        # with name = 'Apple'): empty too. Answered as empty, never retried with the dates removed:
+        # "revenue in 1999" answered with all-time revenue is a different question (review B4).
+        rows = state.get("rows") or []
+        if row_count == 0 or all(row.get("metric_value") is None for row in rows):
             has_dates = intent is not None and (intent.start_date or intent.end_date)
-            if has_dates and retry_count < _MAX_RETRIES:
+            if has_dates:
                 return {
-                    "validation_status": "failed",
+                    "validation_status": "empty",
                     "validation_errors": ["Query returned 0 rows"],
-                    "correction_hint": "remove_date_filters",
-                    "retry_count": retry_count + 1,
-                    "user_trace": [
-                        f"No results found — retrying without date filters (attempt {retry_count + 1})"
-                    ],
-                    "debug_trace": [
-                        f"Validator: 0 rows with date filters, retry {retry_count + 1}/{_MAX_RETRIES}"
-                    ],
+                    "correction_hint": None,
+                    "user_trace": ["No results in that period."],
+                    "debug_trace": [f"Validator: empty result with date filters, retry_count={retry_count}"],
                 }
             return {
                 "validation_status": "empty",

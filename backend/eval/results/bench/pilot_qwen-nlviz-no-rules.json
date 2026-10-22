@@ -1,0 +1,4064 @@
+{
+ "arm": "qwen-nlviz-no-rules",
+ "endpoint": "chat",
+ "cases_file": "K:\\NLviz2\\NLviz\\backend\\eval\\bench\\cases\\dev.jsonl",
+ "state": {
+  "tpch": {
+   "connection_id": "946c5faf-d152-45d0-a8ac-f92b71360e71",
+   "display_name": "bench tpch 20261014-1259",
+   "generation_seconds": 30.2,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 24,
+    "valid_metrics": 24,
+    "broken_metrics": [],
+    "total_dimensions": 17,
+    "valid_dimensions": 17,
+    "broken_dimensions": [],
+    "total_time_dimensions": 2,
+    "valid_time_dimensions": 2,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 15,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 24,
+    "published_dimensions": 17,
+    "published_time_dimensions": 2,
+    "published_filter_columns": 15
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 24.2,
+   "metrics": [
+    "total_revenue",
+    "total_discount",
+    "total_tax",
+    "unique_orders",
+    "average_l_discount",
+    "average_l_extendedprice",
+    "total_l_quantity",
+    "average_l_quantity",
+    "total_l_tax",
+    "average_l_tax",
+    "total_o_totalprice",
+    "average_o_totalprice",
+    "total_p_retailprice",
+    "average_p_retailprice",
+    "total_ps_availqty",
+    "average_ps_availqty",
+    "total_ps_supplycost",
+    "average_ps_supplycost",
+    "total_c_acctbal",
+    "average_c_acctbal",
+    "average_l_linenumber",
+    "total_p_size",
+    "average_p_size",
+    "total_s_acctbal"
+   ],
+   "dimensions": [
+    "part_brand",
+    "part_type",
+    "order_status",
+    "part_size",
+    "r_name",
+    "n_name",
+    "l_linestatus",
+    "l_returnflag",
+    "l_shipinstruct",
+    "c_mktsegment",
+    "o_orderpriority",
+    "p_mfgr",
+    "l_shipmode",
+    "p_container",
+    "l_linenumber",
+    "l_tax",
+    "l_discount"
+   ]
+  },
+  "taxi": {
+   "connection_id": "422ca199-19c3-4c22-bec9-8a1a6229ed96",
+   "display_name": "bench taxi 20261014-1300",
+   "generation_seconds": 15.1,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 24,
+    "valid_metrics": 24,
+    "broken_metrics": [],
+    "total_dimensions": 14,
+    "valid_dimensions": 14,
+    "broken_dimensions": [],
+    "total_time_dimensions": 1,
+    "valid_time_dimensions": 1,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 18,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 24,
+    "published_dimensions": 14,
+    "published_time_dimensions": 1,
+    "published_filter_columns": 18
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 8.1,
+   "metrics": [
+    "total_fare_amount",
+    "total_tip_amount",
+    "total_tolls_amount",
+    "total_improvement_surcharge",
+    "total_congestion_surcharge",
+    "total_airport_fee",
+    "total_total_amount",
+    "average_airport_fee",
+    "average_fare_amount",
+    "total_mta_tax",
+    "average_mta_tax",
+    "average_tip_amount",
+    "average_tolls_amount",
+    "average_total_amount",
+    "total_locationid",
+    "average_locationid",
+    "average_congestion_surcharge",
+    "total_dolocationid",
+    "average_dolocationid",
+    "total_extra",
+    "average_extra",
+    "average_improvement_surcharge",
+    "average_passenger_count",
+    "average_payment_type"
+   ],
+   "dimensions": [
+    "payment_type",
+    "pulocationid",
+    "dolocationid",
+    "ratecodeid",
+    "vendorid",
+    "service_zone",
+    "borough",
+    "zone",
+    "store_and_fwd_flag",
+    "airport_fee",
+    "improvement_surcharge",
+    "congestion_surcharge",
+    "mta_tax",
+    "passenger_count"
+   ]
+  },
+  "employees": {
+   "connection_id": "051179a5-3516-47c4-b749-dbe2857ba128",
+   "display_name": "bench employees 20261014-1300",
+   "generation_seconds": 12.1,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 8,
+    "valid_metrics": 8,
+    "broken_metrics": [],
+    "total_dimensions": 11,
+    "valid_dimensions": 11,
+    "broken_dimensions": [],
+    "total_time_dimensions": 6,
+    "valid_time_dimensions": 6,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 8,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 8,
+    "published_dimensions": 11,
+    "published_time_dimensions": 6,
+    "published_filter_columns": 8
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 4.1,
+   "metrics": [
+    "total_salary",
+    "unique_employees",
+    "average_salary",
+    "unique_titles",
+    "total_current_dept_emp_emp_no",
+    "average_current_dept_emp_emp_no",
+    "total_dept_emp_latest_date_emp_no",
+    "average_dept_emp_latest_date_emp_no"
+   ],
+   "dimensions": [
+    "department_name",
+    "employee_gender",
+    "employee_first_name",
+    "employee_last_name",
+    "title",
+    "hire_date",
+    "birth_date",
+    "employees_name",
+    "current_dept_emp_dept_no",
+    "emp_name",
+    "dept_name"
+   ]
+  }
+ },
+ "configurations": [
+  "{\"mode\": \"llm\", \"model\": \"qwen3:4b-instruct-8k\", \"phrase_rewrites\": false, \"provider\": \"openai\", \"schema\": {\"dataset\": \"sales_and_orders\", \"fingerprint\": \"cfc082c17d89\", \"version\": \"1.0\"}}"
+ ],
+ "runs": [
+  {
+   "repeat": 1,
+   "results": [
+    {
+     "id": "tpch-01",
+     "family": "tpch-f01",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many orders were placed in 1995?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "unique_orders",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": "1995-01-01",
+        "end_date": "1995-12-31",
+        "order_by": "metric_desc",
+        "limit": 1,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "metric_value": 22909
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         22909
+        ]
+       ],
+       "error": null,
+       "seconds": 3.17,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "unique_orders",
+           "dimensions": [],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 1,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": []
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "unique_orders",
+           "dimensions": [],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 1,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1027,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2351,
+          "completion_tokens": 89
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 147,
+          "completion_tokens": 47
+         }
+        ],
+        "tokens": {
+         "prompt": 3525,
+         "completion": 143
+        },
+        "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.orders AS orders\nWHERE orders.o_orderdate >= '1995-01-01' AND orders.o_orderdate < '1996-01-01'\nORDER BY metric_value DESC NULLS LAST\nLIMIT 1"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-02",
+     "family": "tpch-f02",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Number of customers per market segment",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_c_acctbal",
+        "dimensions": [
+         "c_mktsegment"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 5000,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "c_mktsegment": "BUILDING",
+         "metric_value": "13699320.01"
+        },
+        {
+         "c_mktsegment": "AUTOMOBILE",
+         "metric_value": "13624029.48"
+        },
+        {
+         "c_mktsegment": "HOUSEHOLD",
+         "metric_value": "13590697.37"
+        },
+        {
+         "c_mktsegment": "MACHINERY",
+         "metric_value": "13206108.39"
+        },
+        {
+         "c_mktsegment": "FURNITURE",
+         "metric_value": "12937308.66"
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "MACHINERY ",
+         2979
+        ],
+        [
+         "AUTOMOBILE",
+         3013
+        ],
+        [
+         "BUILDING  ",
+         3111
+        ],
+        [
+         "FURNITURE ",
+         2888
+        ],
+        [
+         "HOUSEHOLD ",
+         3009
+        ]
+       ],
+       "error": null,
+       "seconds": 4.31,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_c_acctbal",
+           "dimensions": [
+            "c_mktsegment"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 5000,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Weekly Average O Totalprice trend",
+           "Top 5 L Linenumber by Total P Retailprice",
+           "Quarterly Total P Retailprice trend",
+           "Monthly Average P Retailprice by L Linenumber over time"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_c_acctbal",
+           "dimensions": [
+            "c_mktsegment"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 5000,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1021,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 55
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 55
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 55
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 236,
+          "completion_tokens": 115
+         }
+        ],
+        "tokens": {
+         "prompt": 8115,
+         "completion": 287
+        },
+        "sql": "SELECT customer.c_mktsegment AS c_mktsegment, SUM(customer.c_acctbal) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.customer AS customer\nGROUP BY customer.c_mktsegment\nORDER BY metric_value DESC NULLS LAST, c_mktsegment ASC NULLS LAST\nLIMIT 5000"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-03",
+     "family": "tpch-f03",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Monthly revenue in 1996",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": "order_date",
+        "time_granularity": "month",
+        "start_date": "1996-01-01",
+        "end_date": "1996-12-31",
+        "order_by": "time_asc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "time_bucket": "1996-01-01T00:00:00",
+         "metric_value": "271961475.13"
+        },
+        {
+         "time_bucket": "1996-02-01T00:00:00",
+         "metric_value": "252367425.07"
+        },
+        {
+         "time_bucket": "1996-03-01T00:00:00",
+         "metric_value": "284702677.67"
+        },
+        {
+         "time_bucket": "1996-04-01T00:00:00",
+         "metric_value": "257129129.77"
+        },
+        {
+         "time_bucket": "1996-05-01T00:00:00",
+         "metric_value": "276433654.76"
+        },
+        {
+         "time_bucket": "1996-06-01T00:00:00",
+         "metric_value": "270516973.86"
+        },
+        {
+         "time_bucket": "1996-07-01T00:00:00",
+         "metric_value": "278210505.53"
+        },
+        {
+         "time_bucket": "1996-08-01T00:00:00",
+         "metric_value": "280767986.18"
+        },
+        {
+         "time_bucket": "1996-09-01T00:00:00",
+         "metric_value": "276234202.20"
+        },
+        {
+         "time_bucket": "1996-10-01T00:00:00",
+         "metric_value": "270331553.54"
+        }
+       ],
+       "row_count": 12,
+       "expected": [
+        [
+         "1996-09",
+         262321713.166
+        ],
+        [
+         "1996-12",
+         258736155.1965
+        ],
+        [
+         "1996-06",
+         256982708.98
+        ],
+        [
+         "1996-02",
+         239744055.5279
+        ],
+        [
+         "1996-04",
+         244315117.4795
+        ],
+        [
+         "1996-11",
+         262045944.761
+        ],
+        [
+         "1996-10",
+         256879459.6325
+        ],
+        [
+         "1996-07",
+         264295993.3731
+        ],
+        [
+         "1996-03",
+         270586210.6273
+        ],
+        [
+         "1996-05",
+         262753361.273
+        ]
+       ],
+       "error": null,
+       "seconds": 3.7,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "month",
+           "start_date": "1996-01-01",
+           "end_date": "1996-12-31",
+           "order_by": "time_asc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Monthly Total Revenue trend",
+           "Total Revenue from March to May 2017",
+           "Total Revenue by Part Brand in 2018",
+           "What is the overall Total Revenue?"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "month",
+           "start_date": "1996-01-01",
+           "end_date": "1996-12-31",
+           "order_by": "time_asc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1023,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2307,
+          "completion_tokens": 95
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 332,
+          "completion_tokens": 120
+         }
+        ],
+        "tokens": {
+         "prompt": 3662,
+         "completion": 222
+        },
+        "sql": "SELECT DATE_TRUNC('month', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_extendedprice) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nLEFT JOIN wcebf292c_c946c5fafd152_pg.public.orders AS orders ON lineitem.l_orderkey = orders.o_orderkey\nWHERE orders.o_orderdate >= '1996-01-01' AND orders.o_orderdate < '1997-01-01'\nGROUP BY DATE_TRUNC('month', orders.o_orderdate)\nORDER BY time_bucket ASC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-04",
+     "family": "tpch-f04",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Top 5 customers by revenue",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "c_mktsegment"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 5,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "c_mktsegment": "BUILDING",
+         "metric_value": "4506745848.25"
+        },
+        {
+         "c_mktsegment": "MACHINERY",
+         "metric_value": "4380348595.49"
+        },
+        {
+         "c_mktsegment": "AUTOMOBILE",
+         "metric_value": "4309824198.99"
+        },
+        {
+         "c_mktsegment": "HOUSEHOLD",
+         "metric_value": "4223868089.40"
+        },
+        {
+         "c_mktsegment": "FURNITURE",
+         "metric_value": "4195142548.11"
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "Customer#000008362",
+         5570473.9885
+        ],
+        [
+         "Customer#000009454",
+         5161888.6173
+        ],
+        [
+         "Customer#000006958",
+         5149570.4456
+        ],
+        [
+         "Customer#000000346",
+         5122959.2947
+        ],
+        [
+         "Customer#000010354",
+         5027800.7969
+        ]
+       ],
+       "error": null,
+       "seconds": 4.55,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "c_mktsegment"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 5,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_linenumber",
+            "value": "5",
+            "exact": false
+           }
+          ],
+          "examples": [
+           "Top 5 Order Status by Total Revenue",
+           "Top 5 L Linenumber by Total P Retailprice",
+           "Top 5 L Tax by Average P Retailprice",
+           "Top 5 Part Brand by Average Ps Availqty"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "c_mktsegment"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 5,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1021,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2325,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2325,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2325,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 243,
+          "completion_tokens": 130
+         }
+        ],
+        "tokens": {
+         "prompt": 8239,
+         "completion": 287
+        },
+        "sql": "SELECT customer.c_mktsegment AS c_mktsegment, SUM(lineitem.l_extendedprice) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nLEFT JOIN wcebf292c_c946c5fafd152_pg.public.orders AS orders ON lineitem.l_orderkey = orders.o_orderkey\nLEFT JOIN wcebf292c_c946c5fafd152_pg.public.customer AS customer ON orders.o_custkey = customer.c_custkey\nGROUP BY customer.c_mktsegment\nORDER BY metric_value DESC NULLS LAST, c_mktsegment ASC NULLS LAST\nLIMIT 5"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-05",
+     "family": "tpch-f05",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "What is the average order value by order priority?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "average_o_totalprice",
+        "dimensions": [
+         "o_orderpriority"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "o_orderpriority": "2-HIGH",
+         "metric_value": 142836.65200981038
+        },
+        {
+         "o_orderpriority": "3-MEDIUM",
+         "metric_value": 142492.9709664103
+        },
+        {
+         "o_orderpriority": "1-URGENT",
+         "metric_value": 142427.21337152502
+        },
+        {
+         "o_orderpriority": "5-LOW",
+         "metric_value": 142152.4158570297
+        },
+        {
+         "o_orderpriority": "4-NOT SPECIFIED",
+         "metric_value": 141976.77627883654
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "4-NOT SPECIFIED",
+         141976.7762788365
+        ],
+        [
+         "5-LOW          ",
+         142152.4158570295
+        ],
+        [
+         "3-MEDIUM       ",
+         142492.9709664107
+        ],
+        [
+         "2-HIGH         ",
+         142836.6520098104
+        ],
+        [
+         "1-URGENT       ",
+         142427.21337152534
+        ]
+       ],
+       "error": null,
+       "seconds": 2.89,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "average_o_totalprice",
+           "dimensions": [
+            "o_orderpriority"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "What is the overall Unique Orders?",
+           "Top 5 Order Status by Total Revenue",
+           "What is the overall Average P Retailprice?",
+           "Total O Totalprice by O Orderpriority"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "average_o_totalprice",
+           "dimensions": [
+            "o_orderpriority"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1025,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2273,
+          "completion_tokens": 77
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 283,
+          "completion_tokens": 72
+         }
+        ],
+        "tokens": {
+         "prompt": 3581,
+         "completion": 156
+        },
+        "sql": "SELECT orders.o_orderpriority AS o_orderpriority, AVG(CAST((orders.o_totalprice) AS DOUBLE)) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.orders AS orders\nGROUP BY orders.o_orderpriority\nORDER BY metric_value DESC NULLS LAST, o_orderpriority ASC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-06",
+     "family": "tpch-f06",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many line items were shipped by truck?",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_l_quantity",
+        "dimensions": [],
+        "filters": [
+         {
+          "dimension": "l_shipmode",
+          "operator": "eq",
+          "value": "TRUCK"
+         }
+        ],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "metric_value": "2197196.00"
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         85953
+        ]
+       ],
+       "error": null,
+       "seconds": 4.33,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_l_quantity",
+           "dimensions": [],
+           "filters": [
+            {
+             "dimension": "l_shipmode",
+             "operator": "eq",
+             "value": "TRUCK"
+            }
+           ],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_shipmode",
+            "value": "TRUCK",
+            "exact": true
+           }
+          ],
+          "examples": [
+           "Total Ps Supplycost by L Discount",
+           "Total Revenue by Part Brand",
+           "Total Discount by Part Type",
+           "What is the overall Total Ps Supplycost?"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_l_quantity",
+           "dimensions": [],
+           "filters": [
+            {
+             "dimension": "l_shipmode",
+             "operator": "eq",
+             "value": "TRUCK"
+            }
+           ],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1024,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 95
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 63
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 63
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 135,
+          "completion_tokens": 39
+         }
+        ],
+        "tokens": {
+         "prompt": 8095,
+         "completion": 267
+        },
+        "sql": "SELECT SUM(lineitem.l_quantity) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nWHERE lineitem.l_shipmode = 'TRUCK'\nORDER BY metric_value DESC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-07",
+     "family": "tpch-f07",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Which ship mode carried the most line items?",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_l_quantity",
+        "dimensions": [
+         "l_shipmode"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": "2202900.00"
+        },
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": "2197196.00"
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": "2189597.00"
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": "2188816.00"
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": "2187699.00"
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": "2184851.00"
+        },
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": "2183743.00"
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "SHIP      "
+        ]
+       ],
+       "error": null,
+       "seconds": 4.15,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_l_quantity",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_shipmode",
+            "value": "SHIP",
+            "exact": true
+           }
+          ],
+          "examples": [
+           "Which L Shipmode has the lowest Average O Totalprice?",
+           "Which Order Status has the lowest Total Discount?",
+           "Top 5 L Shipmode by Total O Totalprice",
+           "Which Part Size has the lowest Total Tax?"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_l_quantity",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1024,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2327,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2327,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2327,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 215,
+          "completion_tokens": 103
+         }
+        ],
+        "tokens": {
+         "prompt": 8220,
+         "completion": 263
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, SUM(lineitem.l_quantity) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nGROUP BY lineitem.l_shipmode\nORDER BY metric_value DESC NULLS LAST, l_shipmode ASC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-08",
+     "family": "tpch-f08",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Total quantity of parts sold per year",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_l_quantity",
+        "dimensions": [
+         "part_brand"
+        ],
+        "filters": [],
+        "time_dimension": "order_date",
+        "time_granularity": "year",
+        "start_date": null,
+        "end_date": null,
+        "order_by": "time_asc",
+        "limit": 100,
+        "unsupported": "year",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "1992",
+         2332953.0
+        ],
+        [
+         "1993",
+         2288396.0
+        ],
+        [
+         "1994",
+         2353514.0
+        ],
+        [
+         "1995",
+         2345480.0
+        ],
+        [
+         "1996",
+         2317789.0
+        ],
+        [
+         "1997",
+         2307082.0
+        ],
+        [
+         "1998",
+         1389588.0
+        ]
+       ],
+       "error": null,
+       "seconds": 2.51,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_l_quantity",
+           "dimensions": [
+            "part_brand"
+           ],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "year",
+           "order_by": "time_asc",
+           "limit": 100,
+           "unsupported": "year",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Yearly Total Ps Supplycost by Part Brand over time",
+           "Total Revenue by Part Brand",
+           "Yearly Total L Quantity by L Returnflag over time",
+           "Total Revenue by Part Brand in 2018"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "year"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1022,
+          "completion_tokens": 13
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2302,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2302,
+          "completion_tokens": 78
+         }
+        ],
+        "tokens": {
+         "prompt": 5626,
+         "completion": 141
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-09",
+     "family": "tpch-f09",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Average discount by ship mode",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "average_l_discount",
+        "dimensions": [
+         "l_shipmode"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.05015653354874227
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.05012618039724959
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.050094151412256205
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.050087815331563514
+        },
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.05004176701218922
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.050040137748082684
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.04997117482989316
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.049971174829908156
+        ],
+        [
+         "FOB       ",
+         0.05008781533157858
+        ],
+        [
+         "MAIL      ",
+         0.05004013774809782
+        ],
+        [
+         "RAIL      ",
+         0.050094151412271186
+        ],
+        [
+         "REG AIR   ",
+         0.050156533548757216
+        ],
+        [
+         "SHIP      ",
+         0.050126180397264734
+        ],
+        [
+         "TRUCK     ",
+         0.05004176701220434
+        ]
+       ],
+       "error": null,
+       "seconds": 3.95,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_shipmode",
+            "value": "SHIP",
+            "exact": true
+           }
+          ],
+          "examples": [
+           "Yearly Average O Totalprice by L Shipmode over time",
+           "Average L Discount by R Name",
+           "Monthly Average O Totalprice by L Shipdate",
+           "Monthly Average L Discount by L Shipdate"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1020,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 219,
+          "completion_tokens": 74
+         }
+        ],
+        "tokens": {
+         "prompt": 8205,
+         "completion": 234
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nGROUP BY lineitem.l_shipmode\nORDER BY metric_value DESC NULLS LAST, l_shipmode ASC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-10",
+     "family": "tpch-f10",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many suppliers are there in each nation?",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_s_acctbal",
+        "dimensions": [
+         "n_name"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "suppliers in each nation",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "ETHIOPIA                 ",
+         33
+        ],
+        [
+         "EGYPT                    ",
+         40
+        ],
+        [
+         "IRAN                     ",
+         40
+        ],
+        [
+         "SAUDI ARABIA             ",
+         47
+        ],
+        [
+         "INDONESIA                ",
+         45
+        ],
+        [
+         "RUSSIA                   ",
+         47
+        ],
+        [
+         "GERMANY                  ",
+         50
+        ],
+        [
+         "VIETNAM                  ",
+         39
+        ],
+        [
+         "PERU                     ",
+         40
+        ],
+        [
+         "FRANCE                   ",
+         35
+        ]
+       ],
+       "error": null,
+       "seconds": 2.91,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_s_acctbal",
+           "dimensions": [
+            "n_name"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "suppliers in each nation",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Total Ps Supplycost by L Discount in 2018",
+           "Average Ps Supplycost by Part Brand in 2018",
+           "What is the overall Total Ps Supplycost?",
+           "Total Discount by Part Type in 2018"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "suppliers in each nation"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1024,
+          "completion_tokens": 17
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2343,
+          "completion_tokens": 53
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2343,
+          "completion_tokens": 52
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2343,
+          "completion_tokens": 52
+         }
+        ],
+        "tokens": {
+         "prompt": 8053,
+         "completion": 174
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-20",
+     "family": "tpch-f01",
+     "database": "tpch",
+     "category": "paraphrase",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Total number of orders placed during 1995",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "unique_orders",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": "1995-01-01",
+        "end_date": "1995-12-31",
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "metric_value": 22909
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         22909
+        ]
+       ],
+       "error": null,
+       "seconds": 3.04,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "unique_orders",
+           "dimensions": [],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Yearly Total Discount by Order Status over time",
+           "Yearly Unique Orders trend",
+           "Top 5 Order Status by Total Revenue",
+           "What is the overall Unique Orders?"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "unique_orders",
+           "dimensions": [],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1026,
+          "completion_tokens": 16
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2268,
+          "completion_tokens": 91
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 147,
+          "completion_tokens": 47
+         }
+        ],
+        "tokens": {
+         "prompt": 3441,
+         "completion": 154
+        },
+        "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.orders AS orders\nWHERE orders.o_orderdate >= '1995-01-01' AND orders.o_orderdate < '1996-01-01'\nORDER BY metric_value DESC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-25",
+     "family": "tpch-f25",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Revenue by region",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "r_name"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "region",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "AFRICA                   ",
+         4104593783.0043
+        ],
+        [
+         "AMERICA                  ",
+         4054774589.0832
+        ],
+        [
+         "ASIA                     ",
+         4120876801.0599
+        ],
+        [
+         "EUROPE                   ",
+         4082606839.2603
+        ],
+        [
+         "MIDDLE EAST              ",
+         4172220219.0073
+        ]
+       ],
+       "error": null,
+       "seconds": 2.77,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "r_name"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "region",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Total Revenue by Part Brand",
+           "Quarterly Total Revenue by Part Type over time",
+           "Monthly Total Revenue trend",
+           "What is the overall Total Revenue?"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "region"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1018,
+          "completion_tokens": 13
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2261,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2261,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2261,
+          "completion_tokens": 50
+         }
+        ],
+        "tokens": {
+         "prompt": 7801,
+         "completion": 163
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-28",
+     "family": "tpch-f28",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "What is the average order size?",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "average_p_size",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "average order size",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         142377.30687086665
+        ]
+       ],
+       "error": null,
+       "seconds": 2.82,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "average_p_size",
+           "dimensions": [],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "average order size",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "What is the overall Unique Orders?",
+           "What is the overall Average P Size?",
+           "What is the overall Average L Linenumber?",
+           "What is the overall Average L Quantity?"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "average order size"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1022,
+          "completion_tokens": 15
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2267,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2267,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2267,
+          "completion_tokens": 48
+         }
+        ],
+        "tokens": {
+         "prompt": 7823,
+         "completion": 159
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-29",
+     "family": "tpch-f29",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How much revenue came from returned items?",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "l_returnflag"
+        ],
+        "filters": [
+         {
+          "dimension": "l_returnflag",
+          "operator": "eq",
+          "value": "R"
+         }
+        ],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "revenue from returned items",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         5071818532.942
+        ]
+       ],
+       "error": null,
+       "seconds": 2.23,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "l_returnflag"
+           ],
+           "filters": [
+            {
+             "dimension": "l_returnflag",
+             "operator": "eq",
+             "value": "R"
+            }
+           ],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "revenue from returned items",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_shipinstruct",
+            "value": "TAKE BACK RETURN",
+            "exact": false
+           }
+          ],
+          "examples": [
+           "What is the overall Total Revenue?",
+           "Total Revenue by Part Brand",
+           "Total Revenue from March to May 2017",
+           "Monthly Total Revenue trend"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "revenue from returned items"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1023,
+          "completion_tokens": 17
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2329,
+          "completion_tokens": 96
+         }
+        ],
+        "tokens": {
+         "prompt": 3352,
+         "completion": 113
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-31",
+     "family": "tpch-f31",
+     "database": "tpch",
+     "category": "unsupported",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many website visits led to an order?",
+       "first_outcome": "correct_refusal",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "unique_orders",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "website visits",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": null,
+       "error": null,
+       "seconds": 2.91,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "unique_orders",
+           "dimensions": [],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "website visits",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Yearly Unique Orders trend",
+           "Unique Orders from March to May 2017",
+           "Monthly Unique Orders by L Shipdate",
+           "What is the overall Unique Orders?"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "website visits"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1024,
+          "completion_tokens": 14
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2282,
+          "completion_tokens": 22
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2282,
+          "completion_tokens": 22
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2282,
+          "completion_tokens": 22
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1748,
+          "completion_tokens": 49
+         }
+        ],
+        "tokens": {
+         "prompt": 9618,
+         "completion": 129
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-32",
+     "family": "tpch-f32",
+     "database": "tpch",
+     "category": "unsupported",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Which customers are most likely to churn next year?",
+       "first_outcome": "correct_refusal",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "customer churn likelihood",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": null,
+       "error": null,
+       "seconds": 4.51,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "customer churn likelihood",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Yearly Unique Orders trend",
+           "Yearly Total Discount by Order Status over time",
+           "Yearly Total Ps Supplycost by Part Brand over time",
+           "Which L Linenumber has the lowest Average P Retailprice?"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "customer churn likelihood"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1025,
+          "completion_tokens": 15
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 70
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 62
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 62
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1752,
+          "completion_tokens": 50
+         }
+        ],
+        "tokens": {
+         "prompt": 9635,
+         "completion": 259
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-37",
+     "family": "tpch-f37",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": false,
+     "turns": [
+      {
+       "question": "Revenue and number of orders by year",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "order_status"
+        ],
+        "filters": [],
+        "time_dimension": "order_date",
+        "time_granularity": "year",
+        "start_date": null,
+        "end_date": null,
+        "order_by": "time_asc",
+        "limit": 100,
+        "unsupported": "year",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "1992",
+         3124626834.638,
+         22759
+        ],
+        [
+         "1993",
+         3063847791.3233,
+         22413
+        ],
+        [
+         "1994",
+         3150697585.3555,
+         22958
+        ],
+        [
+         "1995",
+         3144243655.7244,
+         22909
+        ],
+        [
+         "1996",
+         3103823173.4246,
+         22715
+        ],
+        [
+         "1997",
+         3088568800.4996,
+         22682
+        ],
+        [
+         "1998",
+         1859264390.4496,
+         13564
+        ]
+       ],
+       "error": null,
+       "seconds": 1.92,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "order_status"
+           ],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "year",
+           "order_by": "time_asc",
+           "limit": 100,
+           "unsupported": "year",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Yearly Total Discount by Order Status over time",
+           "Top 5 Order Status by Total Revenue",
+           "Yearly Unique Orders trend",
+           "Monthly Total Revenue trend"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "year"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1022,
+          "completion_tokens": 13
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2263,
+          "completion_tokens": 78
+         }
+        ],
+        "tokens": {
+         "prompt": 3285,
+         "completion": 91
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-41",
+     "family": "tpch-f41",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Revenue by year",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": "order_date",
+        "time_granularity": "year",
+        "start_date": null,
+        "end_date": null,
+        "order_by": "time_asc",
+        "limit": 100,
+        "unsupported": "year",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "1992",
+         3124626834.638
+        ],
+        [
+         "1993",
+         3063847791.3233
+        ],
+        [
+         "1994",
+         3150697585.3555
+        ],
+        [
+         "1995",
+         3144243655.7244
+        ],
+        [
+         "1996",
+         3103823173.4246
+        ],
+        [
+         "1997",
+         3088568800.4996
+        ],
+        [
+         "1998",
+         1859264390.4496
+        ]
+       ],
+       "error": null,
+       "seconds": 3.32,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "year",
+           "order_by": "time_asc",
+           "limit": 100,
+           "unsupported": "year",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Monthly Total Revenue trend",
+           "Quarterly Total Revenue by Part Type over time",
+           "Monthly Total Revenue by L Shipdate",
+           "Total Revenue by Part Brand in 2018"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "year"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1018,
+          "completion_tokens": 13
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2287,
+          "completion_tokens": 49
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2287,
+          "completion_tokens": 49
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2287,
+          "completion_tokens": 49
+         }
+        ],
+        "tokens": {
+         "prompt": 7879,
+         "completion": 160
+        },
+        "sql": null
+       }
+      },
+      {
+       "question": "Only for the building segment",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [],
+        "filters": [
+         {
+          "dimension": "c_mktsegment",
+          "operator": "eq",
+          "value": "BUILDING"
+         }
+        ],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": "building segment",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "1992",
+         661743361.1653
+        ],
+        [
+         "1993",
+         639695917.8092
+        ],
+        [
+         "1994",
+         661045442.5292
+        ],
+        [
+         "1995",
+         650271694.381
+        ],
+        [
+         "1996",
+         635636691.0725
+        ],
+        [
+         "1997",
+         649996512.3904
+        ],
+        [
+         "1998",
+         383174338.1886
+        ]
+       ],
+       "error": null,
+       "seconds": 2.1,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [
+            {
+             "dimension": "c_mktsegment",
+             "operator": "eq",
+             "value": "BUILDING"
+            }
+           ],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "unsupported": "building segment",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "c_mktsegment",
+            "value": "BUILDING",
+            "exact": true
+           }
+          ],
+          "examples": [
+           "What is the overall Total Revenue?",
+           "Which Part Type has the lowest Total Revenue?",
+           "Top 5 Part Size by Total Discount",
+           "What is the overall Total Tax?"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "building segment"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1020,
+          "completion_tokens": 14
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2308,
+          "completion_tokens": 94
+         }
+        ],
+        "tokens": {
+         "prompt": 3328,
+         "completion": 108
+        },
+        "sql": null
+       }
+      },
+      {
+       "question": "Now by quarter for 1997",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [],
+        "filters": [],
+        "time_dimension": "order_date",
+        "time_granularity": "quarter",
+        "start_date": "1997-01-01",
+        "end_date": "1997-12-31",
+        "order_by": "time_asc",
+        "limit": 100,
+        "unsupported": "quarter",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "1997-Q3",
+         162246980.0979
+        ],
+        [
+         "1997-Q4",
+         164689384.0218
+        ],
+        [
+         "1997-Q2",
+         161143032.5992
+        ],
+        [
+         "1997-Q1",
+         161917115.6715
+        ]
+       ],
+       "error": null,
+       "seconds": 2.19,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [],
+           "filters": [],
+           "time_dimension": "order_date",
+           "time_granularity": "quarter",
+           "start_date": "1997-01-01",
+           "end_date": "1997-12-31",
+           "order_by": "time_asc",
+           "limit": 100,
+           "unsupported": "quarter",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Quarterly Total Tax trend",
+           "Quarterly Total Revenue by Part Type over time",
+           "Monthly Total Revenue trend",
+           "Quarterly Total P Retailprice trend"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "quarter"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1024,
+          "completion_tokens": 13
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2268,
+          "completion_tokens": 95
+         }
+        ],
+        "tokens": {
+         "prompt": 3292,
+         "completion": 108
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-43",
+     "family": "tpch-f43",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Top 5 nations by revenue",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "n_name"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 5,
+        "unsupported": "nations",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "IRAN                     ",
+         910074740.2508
+        ],
+        [
+         "INDONESIA                ",
+         881001943.9318
+        ],
+        [
+         "ETHIOPIA                 ",
+         868234410.9907
+        ],
+        [
+         "MOROCCO                  ",
+         858617268.8508
+        ],
+        [
+         "CHINA                    ",
+         848152247.2752
+        ]
+       ],
+       "error": null,
+       "seconds": 2.88,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "n_name"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 5,
+           "unsupported": "nations",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_linenumber",
+            "value": "5",
+            "exact": false
+           }
+          ],
+          "examples": [
+           "Top 5 Order Status by Total Revenue",
+           "Top 5 R Name by Total Tax",
+           "Top 5 L Tax by Average P Retailprice",
+           "Top 5 L Linenumber by Total P Retailprice"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "nations"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1021,
+          "completion_tokens": 14
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2320,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2320,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2320,
+          "completion_tokens": 48
+         }
+        ],
+        "tokens": {
+         "prompt": 7981,
+         "completion": 158
+        },
+        "sql": null
+       }
+      },
+      {
+       "question": "Show the bottom 5 instead",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": {
+        "metric": "total_revenue",
+        "dimensions": [
+         "order_status"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_asc",
+        "limit": 5,
+        "unsupported": "bottom 5",
+        "metric_filters": []
+       },
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "KENYA                    ",
+         753996621.3485
+        ],
+        [
+         "PERU                     ",
+         759979213.4539
+        ],
+        [
+         "SAUDI ARABIA             ",
+         765017077.8271
+        ],
+        [
+         "INDIA                    ",
+         782124305.1075
+        ],
+        [
+         "FRANCE                   ",
+         783592881.4218
+        ]
+       ],
+       "error": null,
+       "seconds": 2.86,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_revenue",
+           "dimensions": [
+            "order_status"
+           ],
+           "filters": [],
+           "order_by": "metric_asc",
+           "limit": 5,
+           "unsupported": "bottom 5",
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "o_orderpriority",
+            "value": "5-LOW",
+            "exact": false
+           }
+          ],
+          "examples": [
+           "Top 5 Part Size by Total Discount",
+           "Top 5 Order Status by Total Revenue",
+           "Top 5 R Name by Total Tax",
+           "Top 5 L Discount by Total Ps Availqty"
+          ]
+         },
+         {
+          "stage": "refused",
+          "by": "answerability",
+          "reason": "bottom 5"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1021,
+          "completion_tokens": 15
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 48
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2312,
+          "completion_tokens": 48
+         }
+        ],
+        "tokens": {
+         "prompt": 7957,
+         "completion": 159
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-44",
+     "family": "tpch-f44",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Average discount by ship mode",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "average_l_discount",
+        "dimensions": [
+         "l_shipmode"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.050156533548742256
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.050126180397249566
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.05009415141225617
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.05008781533156352
+        },
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.0500417670121892
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.05004013774808263
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.049971174829893134
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.049971174829908156
+        ],
+        [
+         "FOB       ",
+         0.05008781533157858
+        ],
+        [
+         "MAIL      ",
+         0.05004013774809782
+        ],
+        [
+         "RAIL      ",
+         0.050094151412271186
+        ],
+        [
+         "REG AIR   ",
+         0.050156533548757216
+        ],
+        [
+         "SHIP      ",
+         0.050126180397264734
+        ],
+        [
+         "TRUCK     ",
+         0.05004176701220434
+        ]
+       ],
+       "error": null,
+       "seconds": 4.3,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [
+           {
+            "dimension": "l_shipmode",
+            "value": "SHIP",
+            "exact": true
+           }
+          ],
+          "examples": [
+           "Yearly Average O Totalprice by L Shipmode over time",
+           "Average L Discount by R Name",
+           "Monthly Average O Totalprice by L Shipdate",
+           "Monthly Average L Discount by L Shipdate"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1020,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 51
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 219,
+          "completion_tokens": 74
+         }
+        ],
+        "tokens": {
+         "prompt": 8205,
+         "completion": 234
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nGROUP BY lineitem.l_shipmode\nORDER BY metric_value DESC NULLS LAST, l_shipmode ASC NULLS LAST\nLIMIT 100"
+       }
+      },
+      {
+       "question": "Just for orders placed in 1995",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": {
+        "metric": "average_l_discount",
+        "dimensions": [
+         "l_shipmode"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": "1995-01-01",
+        "end_date": "1995-12-31",
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.05026611608167053
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.0501962581137842
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.05016855212208679
+        },
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.05001993559270092
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.05000304924531226
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.04969706126765921
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.049677394926164756
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.0501685521220864
+        ],
+        [
+         "FOB       ",
+         0.04967739492616433
+        ],
+        [
+         "MAIL      ",
+         0.04969706126765883
+        ],
+        [
+         "RAIL      ",
+         0.050003049245311786
+        ],
+        [
+         "REG AIR   ",
+         0.05001993559270051
+        ],
+        [
+         "SHIP      ",
+         0.050196258113783886
+        ],
+        [
+         "TRUCK     ",
+         0.05026611608167011
+        ]
+       ],
+       "error": null,
+       "seconds": 4.56,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Unique Orders by Part Size in 2018",
+           "Yearly Unique Orders trend",
+           "What is the overall Unique Orders?",
+           "Total Tax by Order Status in 2018"
+          ]
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "average_l_discount",
+           "dimensions": [
+            "l_shipmode"
+           ],
+           "filters": [],
+           "start_date": "1995-01-01",
+           "end_date": "1995-12-31",
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1074,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2423,
+          "completion_tokens": 69
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2423,
+          "completion_tokens": 69
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2423,
+          "completion_tokens": 69
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 244,
+          "completion_tokens": 45
+         }
+        ],
+        "tokens": {
+         "prompt": 8587,
+         "completion": 259
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.lineitem AS lineitem\nLEFT JOIN wcebf292c_c946c5fafd152_pg.public.orders AS orders ON lineitem.l_orderkey = orders.o_orderkey\nWHERE orders.o_orderdate >= '1995-01-01' AND orders.o_orderdate < '1996-01-01'\nGROUP BY lineitem.l_shipmode\nORDER BY metric_value DESC NULLS LAST, l_shipmode ASC NULLS LAST\nLIMIT 100"
+       }
+      },
+      {
+       "question": "Start over: how many parts are there?",
+       "first_outcome": "unnecessary_clarification",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "clarification",
+       "final_status": "answered",
+       "clarifications": [
+        {
+         "clarification": {
+          "kind": "choice",
+          "reason": "mixed_units",
+          "prompt": "Total P Retailprice is recorded in 25 different Part Brand values here, so one figure across them would be meaningless. Pick one Part Brand, or break the result down by Part Brand.",
+          "dimension": "part_brand",
+          "raw": "",
+          "options": [],
+          "any_value": "",
+          "choices": [
+           {
+            "id": "by",
+            "label": "Break down by Part Brand"
+           },
+           {
+            "id": "0",
+            "label": "Brand#11"
+           },
+           {
+            "id": "1",
+            "label": "Brand#12"
+           },
+           {
+            "id": "2",
+            "label": "Brand#13"
+           },
+           {
+            "id": "3",
+            "label": "Brand#14"
+           },
+           {
+            "id": "4",
+            "label": "Brand#15"
+           },
+           {
+            "id": "5",
+            "label": "Brand#21"
+           }
+          ]
+         },
+         "reply": "by",
+         "how": "default: first choice"
+        }
+       ],
+       "intent": {
+        "metric": "total_p_retailprice",
+        "dimensions": [
+         "part_brand"
+        ],
+        "filters": [],
+        "time_dimension": null,
+        "time_granularity": null,
+        "start_date": null,
+        "end_date": null,
+        "order_by": "metric_desc",
+        "limit": 100,
+        "unsupported": null,
+        "metric_filters": []
+       },
+       "rows": [
+        {
+         "part_brand": "Brand#13",
+         "metric_value": "1168182.23"
+        },
+        {
+         "part_brand": "Brand#34",
+         "metric_value": "1165292.04"
+        },
+        {
+         "part_brand": "Brand#53",
+         "metric_value": "1165153.52"
+        },
+        {
+         "part_brand": "Brand#33",
+         "metric_value": "1160769.24"
+        },
+        {
+         "part_brand": "Brand#54",
+         "metric_value": "1157704.28"
+        },
+        {
+         "part_brand": "Brand#42",
+         "metric_value": "1157332.73"
+        },
+        {
+         "part_brand": "Brand#14",
+         "metric_value": "1157118.20"
+        },
+        {
+         "part_brand": "Brand#25",
+         "metric_value": "1155170.16"
+        },
+        {
+         "part_brand": "Brand#21",
+         "metric_value": "1153155.90"
+        },
+        {
+         "part_brand": "Brand#55",
+         "metric_value": "1140150.52"
+        }
+       ],
+       "row_count": 25,
+       "expected": [
+        [
+         20000
+        ]
+       ],
+       "error": null,
+       "seconds": 4.87,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "phrase_rewrites": false,
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         }
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "source": "llm",
+          "intent": {
+           "metric": "total_p_retailprice",
+           "dimensions": [],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          },
+          "error": null,
+          "value_hints": [],
+          "examples": [
+           "Total Discount by Part Type",
+           "Top 5 Part Size by Total Discount",
+           "Unique Orders by Part Size",
+           "Total C Acctbal by Part Type"
+          ]
+         },
+         {
+          "stage": "clarify",
+          "kind": "choice",
+          "reason": "mixed_units"
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_p_retailprice",
+           "dimensions": [],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         },
+         {
+          "stage": "clarified",
+          "reason": "mixed_units",
+          "answer": "by",
+          "intent": {
+           "metric": "total_p_retailprice",
+           "dimensions": [
+            "part_brand"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         },
+         {
+          "stage": "checked",
+          "source": "llm",
+          "intent": {
+           "metric": "total_p_retailprice",
+           "dimensions": [
+            "part_brand"
+           ],
+           "filters": [],
+           "order_by": "metric_desc",
+           "limit": 100,
+           "metric_filters": []
+          }
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1078,
+          "completion_tokens": 7
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2414,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2414,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2414,
+          "completion_tokens": 50
+         },
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 222,
+          "completion_tokens": 115
+         }
+        ],
+        "tokens": {
+         "prompt": 8542,
+         "completion": 272
+        },
+        "sql": "SELECT part.p_brand AS part_brand, SUM(part.p_retailprice) AS metric_value\nFROM wcebf292c_c946c5fafd152_pg.public.part AS part\nGROUP BY part.p_brand\nORDER BY metric_value DESC NULLS LAST, part_brand ASC NULLS LAST\nLIMIT 100"
+       }
+      }
+     ]
+    }
+   ],
+   "summary": {
+    "all": {
+     "turns": 25,
+     "correct_answer": 6,
+     "wrong_answer": 5,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 11,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 1,
+     "error": 0,
+     "final_correct": 8,
+     "needs_review": 0
+    },
+    "database=tpch": {
+     "turns": 25,
+     "correct_answer": 6,
+     "wrong_answer": 5,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 11,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 1,
+     "error": 0,
+     "final_correct": 8,
+     "needs_review": 0
+    },
+    "category=ambiguous": {
+     "turns": 3,
+     "correct_answer": 0,
+     "wrong_answer": 0,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 3,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 0,
+     "needs_review": 0
+    },
+    "category=follow_up": {
+     "turns": 8,
+     "correct_answer": 2,
+     "wrong_answer": 0,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 5,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 1,
+     "error": 0,
+     "final_correct": 2,
+     "needs_review": 0
+    },
+    "category=ordinary": {
+     "turns": 11,
+     "correct_answer": 3,
+     "wrong_answer": 5,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 3,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 3,
+     "needs_review": 0
+    },
+    "category=paraphrase": {
+     "turns": 1,
+     "correct_answer": 1,
+     "wrong_answer": 0,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 1,
+     "needs_review": 0
+    },
+    "category=unsupported": {
+     "turns": 2,
+     "correct_answer": 0,
+     "wrong_answer": 0,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 2,
+     "needs_review": 0
+    },
+    "grammar_supported=False": {
+     "turns": 1,
+     "correct_answer": 0,
+     "wrong_answer": 0,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 1,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 0,
+     "needs_review": 0
+    },
+    "grammar_supported=True": {
+     "turns": 24,
+     "correct_answer": 6,
+     "wrong_answer": 5,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 10,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 1,
+     "error": 0,
+     "final_correct": 8,
+     "needs_review": 0
+    },
+    "tokens": {
+     "prompt": 166047,
+     "completion": 4700
+    },
+    "seconds": {
+     "p50": 3.04,
+     "max": 4.87
+    }
+   }
+  }
+ ]
+}

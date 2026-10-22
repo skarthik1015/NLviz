@@ -48,7 +48,8 @@ body {
     radial-gradient(circle at top right, rgba(234, 201, 167, 0.8), transparent 28%),
     linear-gradient(180deg, #f8f1e5 0%, #f3ebdf 45%, #efe2d0 100%);
   color: var(--text);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
 }
 
 body {
@@ -408,9 +409,9 @@ textarea {
 
 /* ── Shell ─────────────────────────────────────────────── */
 .shell {
-  width: min(1180px, calc(100vw - 32px));
+  width: min(1180px, 100%);
   margin: 0 auto;
-  padding: 32px 0 48px;
+  padding: 32px 24px 48px;
 }
 
 .hero {
@@ -428,6 +429,7 @@ textarea {
 
 .title {
   margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2.6rem, 8vw, 4.8rem);
   line-height: 0.94;
   max-width: 12ch;
@@ -481,6 +483,7 @@ textarea {
   resize: vertical;
   background: rgba(255, 255, 255, 0.7);
   color: var(--text);
+  line-height: 1.6;
 }
 
 .toolbar {
@@ -645,6 +648,7 @@ textarea {
   padding: 34px;
   text-align: center;
   color: var(--muted);
+  line-height: 1.65;
 }
 
 .pill-row {
@@ -675,8 +679,77 @@ textarea {
   }
 
   .shell {
-    width: min(100vw - 20px, 1180px);
-    padding-top: 20px;
+    padding: 20px 16px 36px;
+  }
+}
+
+/* Keep navigation available while leaving room for the question at phone widths. */
+@media (max-width: 640px) {
+  .sidebar {
+    width: 52px;
+  }
+
+  .sidebar-heading,
+  .sidebar-item-text,
+  .sidebar-new-btn > span,
+  .sidebar-item > svg:last-child:not(.sidebar-item-icon) {
+    display: none;
+  }
+
+  .sidebar-item,
+  .sidebar-new-btn {
+    justify-content: center;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .app-header > div {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .composer,
+  .section {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: clamp(2rem, 9vw, 3rem);
+    line-height: 1.08;
+  }
+
+  .toolbar {
+    gap: 10px;
+  }
+
+  .status {
+    width: 100%;
+  }
+
+  .code {
+    max-width: 100%;
+    font-size: 0.78rem;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .button,
+  .data-browser-btn {
+    transition: none;
   }
 }
 

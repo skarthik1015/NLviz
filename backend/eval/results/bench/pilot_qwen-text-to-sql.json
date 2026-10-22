@@ -1,0 +1,2573 @@
+{
+ "arm": "qwen-text-to-sql",
+ "endpoint": "bench-sql",
+ "cases_file": "K:\\NLviz2\\NLviz\\backend\\eval\\bench\\cases\\dev.jsonl",
+ "state": {
+  "tpch": {
+   "connection_id": "946c5faf-d152-45d0-a8ac-f92b71360e71",
+   "display_name": "bench tpch 20261014-1259",
+   "generation_seconds": 30.2,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 24,
+    "valid_metrics": 24,
+    "broken_metrics": [],
+    "total_dimensions": 17,
+    "valid_dimensions": 17,
+    "broken_dimensions": [],
+    "total_time_dimensions": 2,
+    "valid_time_dimensions": 2,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 15,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 24,
+    "published_dimensions": 17,
+    "published_time_dimensions": 2,
+    "published_filter_columns": 15
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 24.2,
+   "metrics": [
+    "total_revenue",
+    "total_discount",
+    "total_tax",
+    "unique_orders",
+    "average_l_discount",
+    "average_l_extendedprice",
+    "total_l_quantity",
+    "average_l_quantity",
+    "total_l_tax",
+    "average_l_tax",
+    "total_o_totalprice",
+    "average_o_totalprice",
+    "total_p_retailprice",
+    "average_p_retailprice",
+    "total_ps_availqty",
+    "average_ps_availqty",
+    "total_ps_supplycost",
+    "average_ps_supplycost",
+    "total_c_acctbal",
+    "average_c_acctbal",
+    "average_l_linenumber",
+    "total_p_size",
+    "average_p_size",
+    "total_s_acctbal"
+   ],
+   "dimensions": [
+    "part_brand",
+    "part_type",
+    "order_status",
+    "part_size",
+    "r_name",
+    "n_name",
+    "l_linestatus",
+    "l_returnflag",
+    "l_shipinstruct",
+    "c_mktsegment",
+    "o_orderpriority",
+    "p_mfgr",
+    "l_shipmode",
+    "p_container",
+    "l_linenumber",
+    "l_tax",
+    "l_discount"
+   ]
+  },
+  "taxi": {
+   "connection_id": "422ca199-19c3-4c22-bec9-8a1a6229ed96",
+   "display_name": "bench taxi 20261014-1300",
+   "generation_seconds": 15.1,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 24,
+    "valid_metrics": 24,
+    "broken_metrics": [],
+    "total_dimensions": 14,
+    "valid_dimensions": 14,
+    "broken_dimensions": [],
+    "total_time_dimensions": 1,
+    "valid_time_dimensions": 1,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 18,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 24,
+    "published_dimensions": 14,
+    "published_time_dimensions": 1,
+    "published_filter_columns": 18
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 8.1,
+   "metrics": [
+    "total_fare_amount",
+    "total_tip_amount",
+    "total_tolls_amount",
+    "total_improvement_surcharge",
+    "total_congestion_surcharge",
+    "total_airport_fee",
+    "total_total_amount",
+    "average_airport_fee",
+    "average_fare_amount",
+    "total_mta_tax",
+    "average_mta_tax",
+    "average_tip_amount",
+    "average_tolls_amount",
+    "average_total_amount",
+    "total_locationid",
+    "average_locationid",
+    "average_congestion_surcharge",
+    "total_dolocationid",
+    "average_dolocationid",
+    "total_extra",
+    "average_extra",
+    "average_improvement_surcharge",
+    "average_passenger_count",
+    "average_payment_type"
+   ],
+   "dimensions": [
+    "payment_type",
+    "pulocationid",
+    "dolocationid",
+    "ratecodeid",
+    "vendorid",
+    "service_zone",
+    "borough",
+    "zone",
+    "store_and_fwd_flag",
+    "airport_fee",
+    "improvement_surcharge",
+    "congestion_surcharge",
+    "mta_tax",
+    "passenger_count"
+   ]
+  },
+  "employees": {
+   "connection_id": "051179a5-3516-47c4-b749-dbe2857ba128",
+   "display_name": "bench employees 20261014-1300",
+   "generation_seconds": 12.1,
+   "job_status": "succeeded",
+   "validation": {
+    "total_metrics": 8,
+    "valid_metrics": 8,
+    "broken_metrics": [],
+    "total_dimensions": 11,
+    "valid_dimensions": 11,
+    "broken_dimensions": [],
+    "total_time_dimensions": 6,
+    "valid_time_dimensions": 6,
+    "broken_time_dimensions": [],
+    "total_filter_columns": 8,
+    "broken_filter_columns": [],
+    "confidence_score": 1.0,
+    "published_metrics": 8,
+    "published_dimensions": 11,
+    "published_time_dimensions": 6,
+    "published_filter_columns": 8
+   },
+   "grounding": "ready",
+   "grounding_wait_s": 4.1,
+   "metrics": [
+    "total_salary",
+    "unique_employees",
+    "average_salary",
+    "unique_titles",
+    "total_current_dept_emp_emp_no",
+    "average_current_dept_emp_emp_no",
+    "total_dept_emp_latest_date_emp_no",
+    "average_dept_emp_latest_date_emp_no"
+   ],
+   "dimensions": [
+    "department_name",
+    "employee_gender",
+    "employee_first_name",
+    "employee_last_name",
+    "title",
+    "hire_date",
+    "birth_date",
+    "employees_name",
+    "current_dept_emp_dept_no",
+    "emp_name",
+    "dept_name"
+   ]
+  }
+ },
+ "configurations": [
+  "{\"approach\": \"text_to_sql\", \"mode\": \"llm\", \"model\": \"qwen3:4b-instruct-8k\", \"provider\": \"openai\", \"schema\": {\"dataset\": \"sales_and_orders\", \"fingerprint\": \"cfc082c17d89\", \"version\": \"1.0\"}}"
+ ],
+ "runs": [
+  {
+   "repeat": 1,
+   "results": [
+    {
+     "id": "tpch-01",
+     "family": "tpch-f01",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many orders were placed in 1995?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "metric_value": 22909
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         22909
+        ]
+       ],
+       "error": null,
+       "seconds": 1.37,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value FROM orders WHERE EXTRACT(YEAR FROM orders.o_orderdate) = 1995"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2129,
+          "completion_tokens": 44
+         }
+        ],
+        "tokens": {
+         "prompt": 2129,
+         "completion": 44
+        },
+        "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value FROM orders WHERE EXTRACT(YEAR FROM orders.o_orderdate) = 1995"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-02",
+     "family": "tpch-f02",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Number of customers per market segment",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "market_segment": "MACHINERY",
+         "number_of_customers": 2979
+        },
+        {
+         "market_segment": "AUTOMOBILE",
+         "number_of_customers": 3013
+        },
+        {
+         "market_segment": "BUILDING",
+         "number_of_customers": 3111
+        },
+        {
+         "market_segment": "FURNITURE",
+         "number_of_customers": 2888
+        },
+        {
+         "market_segment": "HOUSEHOLD",
+         "number_of_customers": 3009
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "MACHINERY ",
+         2979
+        ],
+        [
+         "AUTOMOBILE",
+         3013
+        ],
+        [
+         "BUILDING  ",
+         3111
+        ],
+        [
+         "FURNITURE ",
+         2888
+        ],
+        [
+         "HOUSEHOLD ",
+         3009
+        ]
+       ],
+       "error": null,
+       "seconds": 0.92,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT customer.c_mktsegment AS market_segment, COUNT(*) AS number_of_customers FROM customer GROUP BY customer.c_mktsegment"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2235,
+          "completion_tokens": 38
+         }
+        ],
+        "tokens": {
+         "prompt": 2235,
+         "completion": 38
+        },
+        "sql": "SELECT customer.c_mktsegment AS market_segment, COUNT(*) AS number_of_customers FROM customer GROUP BY customer.c_mktsegment"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-03",
+     "family": "tpch-f03",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Monthly revenue in 1996",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "time_bucket": "1996-01-01T00:00:00.000",
+         "metric_value": 271961475.13
+        },
+        {
+         "time_bucket": "1996-02-01T00:00:00.000",
+         "metric_value": 252367425.07
+        },
+        {
+         "time_bucket": "1996-03-01T00:00:00.000",
+         "metric_value": 284702677.67
+        },
+        {
+         "time_bucket": "1996-04-01T00:00:00.000",
+         "metric_value": 257129129.77
+        },
+        {
+         "time_bucket": "1996-05-01T00:00:00.000",
+         "metric_value": 276433654.76
+        },
+        {
+         "time_bucket": "1996-06-01T00:00:00.000",
+         "metric_value": 270516973.86
+        },
+        {
+         "time_bucket": "1996-07-01T00:00:00.000",
+         "metric_value": 278210505.53
+        },
+        {
+         "time_bucket": "1996-08-01T00:00:00.000",
+         "metric_value": 280767986.18
+        },
+        {
+         "time_bucket": "1996-09-01T00:00:00.000",
+         "metric_value": 276234202.2
+        },
+        {
+         "time_bucket": "1996-10-01T00:00:00.000",
+         "metric_value": 270331553.54
+        }
+       ],
+       "row_count": 12,
+       "expected": [
+        [
+         "1996-09",
+         262321713.166
+        ],
+        [
+         "1996-12",
+         258736155.1965
+        ],
+        [
+         "1996-06",
+         256982708.98
+        ],
+        [
+         "1996-02",
+         239744055.5279
+        ],
+        [
+         "1996-04",
+         244315117.4795
+        ],
+        [
+         "1996-11",
+         262045944.761
+        ],
+        [
+         "1996-10",
+         256879459.6325
+        ],
+        [
+         "1996-07",
+         264295993.3731
+        ],
+        [
+         "1996-03",
+         270586210.6273
+        ],
+        [
+         "1996-05",
+         262753361.273
+        ]
+       ],
+       "error": null,
+       "seconds": 1.92,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT DATE_TRUNC('month', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey WHERE orders.o_orderdate >= '1996-01-01' AND orders.o_orderdate < '1997-01-01' GROUP BY DATE_TRUNC('month', orders.o_orderdate) ORDER BY time_bucket ASC NULLS LAST"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2141,
+          "completion_tokens": 110
+         }
+        ],
+        "tokens": {
+         "prompt": 2141,
+         "completion": 110
+        },
+        "sql": "SELECT DATE_TRUNC('month', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey WHERE orders.o_orderdate >= '1996-01-01' AND orders.o_orderdate < '1997-01-01' GROUP BY DATE_TRUNC('month', orders.o_orderdate) ORDER BY time_bucket ASC NULLS LAST"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-04",
+     "family": "tpch-f04",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Top 5 customers by revenue",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "customer_key": 8362,
+         "revenue": 5823964.19
+        },
+        {
+         "customer_key": 9454,
+         "revenue": 5450791.64
+        },
+        {
+         "customer_key": 6958,
+         "revenue": 5427257.03
+        },
+        {
+         "customer_key": 346,
+         "revenue": 5388340.89
+        },
+        {
+         "customer_key": 10354,
+         "revenue": 5290661.31
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "Customer#000008362",
+         5570473.9885
+        ],
+        [
+         "Customer#000009454",
+         5161888.6173
+        ],
+        [
+         "Customer#000006958",
+         5149570.4456
+        ],
+        [
+         "Customer#000000346",
+         5122959.2947
+        ],
+        [
+         "Customer#000010354",
+         5027800.7969
+        ]
+       ],
+       "error": null,
+       "seconds": 1.64,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT customer.c_custkey AS customer_key, SUM(lineitem.l_extendedprice) AS revenue\nFROM customer\nJOIN orders ON customer.c_custkey = orders.o_custkey\nJOIN lineitem ON orders.o_orderkey = lineitem.l_orderkey\nGROUP BY customer.c_custkey\nORDER BY revenue DESC NULLS LAST\nLIMIT 5"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2186,
+          "completion_tokens": 80
+         }
+        ],
+        "tokens": {
+         "prompt": 2186,
+         "completion": 80
+        },
+        "sql": "SELECT customer.c_custkey AS customer_key, SUM(lineitem.l_extendedprice) AS revenue\nFROM customer\nJOIN orders ON customer.c_custkey = orders.o_custkey\nJOIN lineitem ON orders.o_orderkey = lineitem.l_orderkey\nGROUP BY customer.c_custkey\nORDER BY revenue DESC NULLS LAST\nLIMIT 5"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-05",
+     "family": "tpch-f05",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "What is the average order value by order priority?",
+       "first_outcome": "error",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "error",
+       "final_status": "error",
+       "clarifications": [],
+       "intent": null,
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         "4-NOT SPECIFIED",
+         141976.7762788365
+        ],
+        [
+         "5-LOW          ",
+         142152.4158570295
+        ],
+        [
+         "3-MEDIUM       ",
+         142492.9709664107
+        ],
+        [
+         "2-HIGH         ",
+         142836.6520098104
+        ],
+        [
+         "1-URGENT       ",
+         142427.21337152534
+        ]
+       ],
+       "error": "Flight returned internal error, with message: DataFusion error: Execution error: Failed to execute query.",
+       "seconds": 2.53,
+       "audit": null
+      }
+     ]
+    },
+    {
+     "id": "tpch-06",
+     "family": "tpch-f06",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many line items were shipped by truck?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "line_item_count": 85953
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         85953
+        ]
+       ],
+       "error": null,
+       "seconds": 0.97,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT COUNT(*) AS line_item_count\nFROM lineitem\nWHERE l_shipmode = 'TRUCK'"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2102,
+          "completion_tokens": 33
+         }
+        ],
+        "tokens": {
+         "prompt": 2102,
+         "completion": 33
+        },
+        "sql": "SELECT COUNT(*) AS line_item_count\nFROM lineitem\nWHERE l_shipmode = 'TRUCK'"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-07",
+     "family": "tpch-f07",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Which ship mode carried the most line items?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "l_shipmode": "SHIP",
+         "line_item_count": 85988
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         "SHIP      "
+        ]
+       ],
+       "error": null,
+       "seconds": 1.32,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT lineitem.l_shipmode AS l_shipmode, COUNT(lineitem.l_orderkey) AS line_item_count\nFROM lineitem\nGROUP BY lineitem.l_shipmode\nORDER BY line_item_count DESC\nLIMIT 1"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2198,
+          "completion_tokens": 57
+         }
+        ],
+        "tokens": {
+         "prompt": 2198,
+         "completion": 57
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, COUNT(lineitem.l_orderkey) AS line_item_count\nFROM lineitem\nGROUP BY lineitem.l_shipmode\nORDER BY line_item_count DESC\nLIMIT 1"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-08",
+     "family": "tpch-f08",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Total quantity of parts sold per year",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "time_bucket": "1992-01-01T00:00:00.000",
+         "total_quantity": 2332953.0
+        },
+        {
+         "time_bucket": "1993-01-01T00:00:00.000",
+         "total_quantity": 2288396.0
+        },
+        {
+         "time_bucket": "1994-01-01T00:00:00.000",
+         "total_quantity": 2353514.0
+        },
+        {
+         "time_bucket": "1995-01-01T00:00:00.000",
+         "total_quantity": 2345480.0
+        },
+        {
+         "time_bucket": "1996-01-01T00:00:00.000",
+         "total_quantity": 2317789.0
+        },
+        {
+         "time_bucket": "1997-01-01T00:00:00.000",
+         "total_quantity": 2307082.0
+        },
+        {
+         "time_bucket": "1998-01-01T00:00:00.000",
+         "total_quantity": 1389588.0
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "1992",
+         2332953.0
+        ],
+        [
+         "1993",
+         2288396.0
+        ],
+        [
+         "1994",
+         2353514.0
+        ],
+        [
+         "1995",
+         2345480.0
+        ],
+        [
+         "1996",
+         2317789.0
+        ],
+        [
+         "1997",
+         2307082.0
+        ],
+        [
+         "1998",
+         1389588.0
+        ]
+       ],
+       "error": null,
+       "seconds": 1.52,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT DATE_TRUNC('year', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_quantity) AS total_quantity\nFROM lineitem\nJOIN orders ON lineitem.l_orderkey = orders.o_orderkey\nGROUP BY DATE_TRUNC('year', orders.o_orderdate)\nORDER BY time_bucket ASC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2242,
+          "completion_tokens": 73
+         }
+        ],
+        "tokens": {
+         "prompt": 2242,
+         "completion": 73
+        },
+        "sql": "SELECT DATE_TRUNC('year', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_quantity) AS total_quantity\nFROM lineitem\nJOIN orders ON lineitem.l_orderkey = orders.o_orderkey\nGROUP BY DATE_TRUNC('year', orders.o_orderdate)\nORDER BY time_bucket ASC"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-09",
+     "family": "tpch-f09",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Average discount by ship mode",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.0501565335
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.0501261804
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.0500941514
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.0500878153
+        },
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.050041767
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.0500401377
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.0499711748
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.049971174829908156
+        ],
+        [
+         "FOB       ",
+         0.05008781533157858
+        ],
+        [
+         "MAIL      ",
+         0.05004013774809782
+        ],
+        [
+         "RAIL      ",
+         0.050094151412271186
+        ],
+        [
+         "REG AIR   ",
+         0.050156533548757216
+        ],
+        [
+         "SHIP      ",
+         0.050126180397264734
+        ],
+        [
+         "TRUCK     ",
+         0.05004176701220434
+        ]
+       ],
+       "error": null,
+       "seconds": 1.34,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2292,
+          "completion_tokens": 56
+         }
+        ],
+        "tokens": {
+         "prompt": 2292,
+         "completion": 56
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-10",
+     "family": "tpch-f10",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many suppliers are there in each nation?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "nation": "CHINA",
+         "supplier_count": 53
+        },
+        {
+         "nation": "GERMANY",
+         "supplier_count": 50
+        },
+        {
+         "nation": "INDIA",
+         "supplier_count": 47
+        },
+        {
+         "nation": "SAUDI ARABIA",
+         "supplier_count": 47
+        },
+        {
+         "nation": "RUSSIA",
+         "supplier_count": 47
+        },
+        {
+         "nation": "INDONESIA",
+         "supplier_count": 45
+        },
+        {
+         "nation": "BRAZIL",
+         "supplier_count": 43
+        },
+        {
+         "nation": "IRAQ",
+         "supplier_count": 43
+        },
+        {
+         "nation": "JAPAN",
+         "supplier_count": 41
+        },
+        {
+         "nation": "PERU",
+         "supplier_count": 40
+        }
+       ],
+       "row_count": 25,
+       "expected": [
+        [
+         "ETHIOPIA                 ",
+         33
+        ],
+        [
+         "EGYPT                    ",
+         40
+        ],
+        [
+         "IRAN                     ",
+         40
+        ],
+        [
+         "SAUDI ARABIA             ",
+         47
+        ],
+        [
+         "INDONESIA                ",
+         45
+        ],
+        [
+         "RUSSIA                   ",
+         47
+        ],
+        [
+         "GERMANY                  ",
+         50
+        ],
+        [
+         "VIETNAM                  ",
+         39
+        ],
+        [
+         "PERU                     ",
+         40
+        ],
+        [
+         "FRANCE                   ",
+         35
+        ]
+       ],
+       "error": null,
+       "seconds": 1.28,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT nation.n_name AS nation, COUNT(supplier.s_suppkey) AS supplier_count\nFROM nation\nLEFT JOIN supplier ON supplier.s_nationkey = nation.n_nationkey\nGROUP BY nation.n_name\nORDER BY supplier_count DESC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2322,
+          "completion_tokens": 60
+         }
+        ],
+        "tokens": {
+         "prompt": 2322,
+         "completion": 60
+        },
+        "sql": "SELECT nation.n_name AS nation, COUNT(supplier.s_suppkey) AS supplier_count\nFROM nation\nLEFT JOIN supplier ON supplier.s_nationkey = nation.n_nationkey\nGROUP BY nation.n_name\nORDER BY supplier_count DESC"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-20",
+     "family": "tpch-f01",
+     "database": "tpch",
+     "category": "paraphrase",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Total number of orders placed during 1995",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "metric_value": 22909
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         22909
+        ]
+       ],
+       "error": null,
+       "seconds": 1.02,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value FROM orders WHERE EXTRACT(YEAR FROM orders.o_orderdate) = 1995"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2090,
+          "completion_tokens": 44
+         }
+        ],
+        "tokens": {
+         "prompt": 2090,
+         "completion": 44
+        },
+        "sql": "SELECT COUNT(DISTINCT orders.o_orderkey) AS metric_value FROM orders WHERE EXTRACT(YEAR FROM orders.o_orderdate) = 1995"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-25",
+     "family": "tpch-f25",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Revenue by region",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "region": "MIDDLE EAST",
+         "metric_value": 4391953466.85
+        },
+        {
+         "region": "ASIA",
+         "metric_value": 4337567537.31
+        },
+        {
+         "region": "AFRICA",
+         "metric_value": 4320425380.36
+        },
+        {
+         "region": "EUROPE",
+         "metric_value": 4297169755.08
+        },
+        {
+         "region": "AMERICA",
+         "metric_value": 4268813140.64
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "AFRICA                   ",
+         4104593783.0043
+        ],
+        [
+         "AMERICA                  ",
+         4054774589.0832
+        ],
+        [
+         "ASIA                     ",
+         4120876801.0599
+        ],
+        [
+         "EUROPE                   ",
+         4082606839.2603
+        ],
+        [
+         "MIDDLE EAST              ",
+         4172220219.0073
+        ]
+       ],
+       "error": null,
+       "seconds": 1.87,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT region.r_name AS region, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey JOIN region ON nation.n_regionkey = region.r_regionkey GROUP BY region.r_name ORDER BY metric_value DESC NULLS LAST"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2099,
+          "completion_tokens": 96
+         }
+        ],
+        "tokens": {
+         "prompt": 2099,
+         "completion": 96
+        },
+        "sql": "SELECT region.r_name AS region, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey JOIN region ON nation.n_regionkey = region.r_regionkey GROUP BY region.r_name ORDER BY metric_value DESC NULLS LAST"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-28",
+     "family": "tpch-f28",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "What is the average order size?",
+       "first_outcome": "unnecessary_refusal",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": null,
+       "rows": [],
+       "row_count": 0,
+       "expected": [
+        [
+         142377.30687086665
+        ]
+       ],
+       "error": null,
+       "seconds": 1.5,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "refused",
+          "by": "llm",
+          "reason": "The metric 'average order size' is not defined in the provided metrics. The available metrics include 'average_l_quantity', 'average_l_extendedprice', 'average_o_totalprice', and others, but none spec"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 1975,
+          "completion_tokens": 86
+         }
+        ],
+        "tokens": {
+         "prompt": 1975,
+         "completion": 86
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-29",
+     "family": "tpch-f29",
+     "database": "tpch",
+     "category": "ambiguous",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How much revenue came from returned items?",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "revenue_from_returned_items": 5337950526.47
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         5071818532.942
+        ]
+       ],
+       "error": null,
+       "seconds": 1.26,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT SUM(lineitem.l_extendedprice * CASE WHEN lineitem.l_returnflag = 'R' THEN 1 ELSE 0 END) AS revenue_from_returned_items\nFROM lineitem"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2106,
+          "completion_tokens": 49
+         }
+        ],
+        "tokens": {
+         "prompt": 2106,
+         "completion": 49
+        },
+        "sql": "SELECT SUM(lineitem.l_extendedprice * CASE WHEN lineitem.l_returnflag = 'R' THEN 1 ELSE 0 END) AS revenue_from_returned_items\nFROM lineitem"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-31",
+     "family": "tpch-f31",
+     "database": "tpch",
+     "category": "unsupported",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "How many website visits led to an order?",
+       "first_outcome": "correct_refusal",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": null,
+       "rows": [],
+       "row_count": 0,
+       "expected": null,
+       "error": null,
+       "seconds": 1.15,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "refused",
+          "by": "llm",
+          "reason": "The database does not contain a table or column related to 'website visits'. There is no information about website visits or their relationship to orders."
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2071,
+          "completion_tokens": 40
+         }
+        ],
+        "tokens": {
+         "prompt": 2071,
+         "completion": 40
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-32",
+     "family": "tpch-f32",
+     "database": "tpch",
+     "category": "unsupported",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Which customers are most likely to churn next year?",
+       "first_outcome": "correct_refusal",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "unsupported",
+       "final_status": "unsupported",
+       "clarifications": [],
+       "intent": null,
+       "rows": [],
+       "row_count": 0,
+       "expected": null,
+       "error": null,
+       "seconds": 0.97,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "refused",
+          "by": "llm",
+          "reason": "The data does not contain information about customer churn or any predictive model to determine which customers are likely to churn next year."
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2249,
+          "completion_tokens": 36
+         }
+        ],
+        "tokens": {
+         "prompt": 2249,
+         "completion": 36
+        },
+        "sql": null
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-37",
+     "family": "tpch-f37",
+     "database": "tpch",
+     "category": "ordinary",
+     "grammar_supported": false,
+     "turns": [
+      {
+       "question": "Revenue and number of orders by year",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "year": 1992,
+         "total_revenue": 3289368288.13,
+         "unique_orders": 22759
+        },
+        {
+         "year": 1993,
+         "total_revenue": 3225234505.94,
+         "unique_orders": 22413
+        },
+        {
+         "year": 1994,
+         "total_revenue": 3316167804.67,
+         "unique_orders": 22958
+        },
+        {
+         "year": 1995,
+         "total_revenue": 3309780389.45,
+         "unique_orders": 22909
+        },
+        {
+         "year": 1996,
+         "total_revenue": 3266846395.81,
+         "unique_orders": 22715
+        },
+        {
+         "year": 1997,
+         "total_revenue": 3251604858.67,
+         "unique_orders": 22682
+        },
+        {
+         "year": 1998,
+         "total_revenue": 1956927037.57,
+         "unique_orders": 13564
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "1992",
+         3124626834.638,
+         22759
+        ],
+        [
+         "1993",
+         3063847791.3233,
+         22413
+        ],
+        [
+         "1994",
+         3150697585.3555,
+         22958
+        ],
+        [
+         "1995",
+         3144243655.7244,
+         22909
+        ],
+        [
+         "1996",
+         3103823173.4246,
+         22715
+        ],
+        [
+         "1997",
+         3088568800.4996,
+         22682
+        ],
+        [
+         "1998",
+         1859264390.4496,
+         13564
+        ]
+       ],
+       "error": null,
+       "seconds": 2.13,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue, COUNT(DISTINCT orders.o_orderkey) AS unique_orders FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2124,
+          "completion_tokens": 82
+         }
+        ],
+        "tokens": {
+         "prompt": 2124,
+         "completion": 82
+        },
+        "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue, COUNT(DISTINCT orders.o_orderkey) AS unique_orders FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-41",
+     "family": "tpch-f41",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Revenue by year",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "year": 1992,
+         "total_revenue": 3289368288.13
+        },
+        {
+         "year": 1993,
+         "total_revenue": 3225234505.94
+        },
+        {
+         "year": 1994,
+         "total_revenue": 3316167804.67
+        },
+        {
+         "year": 1995,
+         "total_revenue": 3309780389.45
+        },
+        {
+         "year": 1996,
+         "total_revenue": 3266846395.81
+        },
+        {
+         "year": 1997,
+         "total_revenue": 3251604858.67
+        },
+        {
+         "year": 1998,
+         "total_revenue": 1956927037.57
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "1992",
+         3124626834.638
+        ],
+        [
+         "1993",
+         3063847791.3233
+        ],
+        [
+         "1994",
+         3150697585.3555
+        ],
+        [
+         "1995",
+         3144243655.7244
+        ],
+        [
+         "1996",
+         3103823173.4246
+        ],
+        [
+         "1997",
+         3088568800.4996
+        ],
+        [
+         "1998",
+         1859264390.4496
+        ]
+       ],
+       "error": null,
+       "seconds": 1.56,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2186,
+          "completion_tokens": 70
+         }
+        ],
+        "tokens": {
+         "prompt": 2186,
+         "completion": 70
+        },
+        "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+       }
+      },
+      {
+       "question": "Only for the building segment",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "year": 1992,
+         "total_revenue": 696762926.43
+        },
+        {
+         "year": 1993,
+         "total_revenue": 673284466.02
+        },
+        {
+         "year": 1994,
+         "total_revenue": 695549193.83
+        },
+        {
+         "year": 1995,
+         "total_revenue": 684614686.85
+        },
+        {
+         "year": 1996,
+         "total_revenue": 669323411.17
+        },
+        {
+         "year": 1997,
+         "total_revenue": 684089443.95
+        },
+        {
+         "year": 1998,
+         "total_revenue": 403121720.0
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "1992",
+         661743361.1653
+        ],
+        [
+         "1993",
+         639695917.8092
+        ],
+        [
+         "1994",
+         661045442.5292
+        ],
+        [
+         "1995",
+         650271694.381
+        ],
+        [
+         "1996",
+         635636691.0725
+        ],
+        [
+         "1997",
+         649996512.3904
+        ],
+        [
+         "1998",
+         383174338.1886
+        ]
+       ],
+       "error": null,
+       "seconds": 1.72,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey LEFT JOIN customer ON orders.o_custkey = customer.c_custkey WHERE customer.c_mktsegment = 'BUILDING' GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2140,
+          "completion_tokens": 94
+         }
+        ],
+        "tokens": {
+         "prompt": 2140,
+         "completion": 94
+        },
+        "sql": "SELECT EXTRACT(YEAR FROM orders.o_orderdate) AS year, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey LEFT JOIN customer ON orders.o_custkey = customer.c_custkey WHERE customer.c_mktsegment = 'BUILDING' GROUP BY EXTRACT(YEAR FROM orders.o_orderdate) ORDER BY year ASC"
+       }
+      },
+      {
+       "question": "Now by quarter for 1997",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "time_bucket": "1997-01-01T00:00:00.000",
+         "total_revenue": 170408840.04
+        },
+        {
+         "time_bucket": "1997-04-01T00:00:00.000",
+         "total_revenue": 169663707.09
+        },
+        {
+         "time_bucket": "1997-07-01T00:00:00.000",
+         "total_revenue": 170672634.13
+        },
+        {
+         "time_bucket": "1997-10-01T00:00:00.000",
+         "total_revenue": 173344262.69
+        }
+       ],
+       "row_count": 4,
+       "expected": [
+        [
+         "1997-Q3",
+         162246980.0979
+        ],
+        [
+         "1997-Q4",
+         164689384.0218
+        ],
+        [
+         "1997-Q2",
+         161143032.5992
+        ],
+        [
+         "1997-Q1",
+         161917115.6715
+        ]
+       ],
+       "error": null,
+       "seconds": 2.1,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT DATE_TRUNC('quarter', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey LEFT JOIN customer ON orders.o_custkey = customer.c_custkey WHERE customer.c_mktsegment = 'BUILDING' AND EXTRACT(YEAR FROM orders.o_orderdate) = 1997 GROUP BY DATE_TRUNC('quarter', orders.o_orderdate) ORDER BY time_bucket ASC"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2286,
+          "completion_tokens": 113
+         }
+        ],
+        "tokens": {
+         "prompt": 2286,
+         "completion": 113
+        },
+        "sql": "SELECT DATE_TRUNC('quarter', orders.o_orderdate) AS time_bucket, SUM(lineitem.l_extendedprice) AS total_revenue FROM lineitem LEFT JOIN orders ON lineitem.l_orderkey = orders.o_orderkey LEFT JOIN customer ON orders.o_custkey = customer.c_custkey WHERE customer.c_mktsegment = 'BUILDING' AND EXTRACT(YEAR FROM orders.o_orderdate) = 1997 GROUP BY DATE_TRUNC('quarter', orders.o_orderdate) ORDER BY time_bucket ASC"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-43",
+     "family": "tpch-f43",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Top 5 nations by revenue",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "n_name": "IRAN",
+         "metric_value": 957824230.18
+        },
+        {
+         "n_name": "INDONESIA",
+         "metric_value": 927659155.24
+        },
+        {
+         "n_name": "ETHIOPIA",
+         "metric_value": 913687156.05
+        },
+        {
+         "n_name": "MOROCCO",
+         "metric_value": 904003426.4
+        },
+        {
+         "n_name": "CHINA",
+         "metric_value": 892927368.56
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "IRAN                     ",
+         910074740.2508
+        ],
+        [
+         "INDONESIA                ",
+         881001943.9318
+        ],
+        [
+         "ETHIOPIA                 ",
+         868234410.9907
+        ],
+        [
+         "MOROCCO                  ",
+         858617268.8508
+        ],
+        [
+         "CHINA                    ",
+         848152247.2752
+        ]
+       ],
+       "error": null,
+       "seconds": 2.15,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT nation.n_name AS n_name, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey GROUP BY nation.n_name ORDER BY metric_value DESC NULLS LAST, n_name ASC NULLS LAST LIMIT 5"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2211,
+          "completion_tokens": 95
+         }
+        ],
+        "tokens": {
+         "prompt": 2211,
+         "completion": 95
+        },
+        "sql": "SELECT nation.n_name AS n_name, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey GROUP BY nation.n_name ORDER BY metric_value DESC NULLS LAST, n_name ASC NULLS LAST LIMIT 5"
+       }
+      },
+      {
+       "question": "Show the bottom 5 instead",
+       "first_outcome": "wrong_answer",
+       "needs_review": false,
+       "final_correct": false,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "n_name": "KENYA",
+         "metric_value": 793513851.82
+        },
+        {
+         "n_name": "PERU",
+         "metric_value": 800223863.88
+        },
+        {
+         "n_name": "SAUDI ARABIA",
+         "metric_value": 805412863.15
+        },
+        {
+         "n_name": "INDIA",
+         "metric_value": 822973099.39
+        },
+        {
+         "n_name": "FRANCE",
+         "metric_value": 824996894.85
+        }
+       ],
+       "row_count": 5,
+       "expected": [
+        [
+         "KENYA                    ",
+         753996621.3485
+        ],
+        [
+         "PERU                     ",
+         759979213.4539
+        ],
+        [
+         "SAUDI ARABIA             ",
+         765017077.8271
+        ],
+        [
+         "INDIA                    ",
+         782124305.1075
+        ],
+        [
+         "FRANCE                   ",
+         783592881.4218
+        ]
+       ],
+       "error": null,
+       "seconds": 1.86,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT nation.n_name AS n_name, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey GROUP BY nation.n_name ORDER BY metric_value ASC NULLS LAST, n_name ASC NULLS LAST LIMIT 5"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2287,
+          "completion_tokens": 95
+         }
+        ],
+        "tokens": {
+         "prompt": 2287,
+         "completion": 95
+        },
+        "sql": "SELECT nation.n_name AS n_name, SUM(lineitem.l_extendedprice) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey JOIN customer ON orders.o_custkey = customer.c_custkey JOIN nation ON customer.c_nationkey = nation.n_nationkey GROUP BY nation.n_name ORDER BY metric_value ASC NULLS LAST, n_name ASC NULLS LAST LIMIT 5"
+       }
+      }
+     ]
+    },
+    {
+     "id": "tpch-44",
+     "family": "tpch-f44",
+     "database": "tpch",
+     "category": "follow_up",
+     "grammar_supported": true,
+     "turns": [
+      {
+       "question": "Average discount by ship mode",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.0501565335
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.0501261804
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.0500941514
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.0500878153
+        },
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.050041767
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.0500401377
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.0499711748
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.049971174829908156
+        ],
+        [
+         "FOB       ",
+         0.05008781533157858
+        ],
+        [
+         "MAIL      ",
+         0.05004013774809782
+        ],
+        [
+         "RAIL      ",
+         0.050094151412271186
+        ],
+        [
+         "REG AIR   ",
+         0.050156533548757216
+        ],
+        [
+         "SHIP      ",
+         0.050126180397264734
+        ],
+        [
+         "TRUCK     ",
+         0.05004176701220434
+        ]
+       ],
+       "error": null,
+       "seconds": 1.39,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2292,
+          "completion_tokens": 56
+         }
+        ],
+        "tokens": {
+         "prompt": 2292,
+         "completion": 56
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+       }
+      },
+      {
+       "question": "Just for orders placed in 1995",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "l_shipmode": "TRUCK",
+         "metric_value": 0.0502661161
+        },
+        {
+         "l_shipmode": "SHIP",
+         "metric_value": 0.0501962581
+        },
+        {
+         "l_shipmode": "AIR",
+         "metric_value": 0.0501685521
+        },
+        {
+         "l_shipmode": "REG AIR",
+         "metric_value": 0.0500199356
+        },
+        {
+         "l_shipmode": "RAIL",
+         "metric_value": 0.0500030492
+        },
+        {
+         "l_shipmode": "MAIL",
+         "metric_value": 0.0496970613
+        },
+        {
+         "l_shipmode": "FOB",
+         "metric_value": 0.0496773949
+        }
+       ],
+       "row_count": 7,
+       "expected": [
+        [
+         "AIR       ",
+         0.0501685521220864
+        ],
+        [
+         "FOB       ",
+         0.04967739492616433
+        ],
+        [
+         "MAIL      ",
+         0.04969706126765883
+        ],
+        [
+         "RAIL      ",
+         0.050003049245311786
+        ],
+        [
+         "REG AIR   ",
+         0.05001993559270051
+        ],
+        [
+         "SHIP      ",
+         0.050196258113783886
+        ],
+        [
+         "TRUCK     ",
+         0.05026611608167011
+        ]
+       ],
+       "error": null,
+       "seconds": 1.99,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey WHERE orders.o_orderdate >= '1995-01-01' AND orders.o_orderdate < '1996-01-01' GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2234,
+          "completion_tokens": 105
+         }
+        ],
+        "tokens": {
+         "prompt": 2234,
+         "completion": 105
+        },
+        "sql": "SELECT lineitem.l_shipmode AS l_shipmode, AVG(CAST((lineitem.l_discount) AS DOUBLE)) AS metric_value FROM lineitem JOIN orders ON lineitem.l_orderkey = orders.o_orderkey WHERE orders.o_orderdate >= '1995-01-01' AND orders.o_orderdate < '1996-01-01' GROUP BY lineitem.l_shipmode ORDER BY metric_value DESC NULLS LAST"
+       }
+      },
+      {
+       "question": "Start over: how many parts are there?",
+       "first_outcome": "correct_answer",
+       "needs_review": false,
+       "final_correct": true,
+       "first_status": "answered",
+       "final_status": "answered",
+       "clarifications": [],
+       "intent": null,
+       "rows": [
+        {
+         "part_count": 20000
+        }
+       ],
+       "row_count": 1,
+       "expected": [
+        [
+         20000
+        ]
+       ],
+       "error": null,
+       "seconds": 0.81,
+       "audit": {
+        "run": {
+         "mode": "llm",
+         "provider": "openai",
+         "model": "qwen3:4b-instruct-8k",
+         "schema": {
+          "dataset": "sales_and_orders",
+          "version": "1.0",
+          "fingerprint": "cfc082c17d89"
+         },
+         "approach": "text_to_sql"
+        },
+        "steps": [
+         {
+          "stage": "proposal",
+          "attempt": 0,
+          "sql": "SELECT COUNT(*) AS part_count FROM part"
+         }
+        ],
+        "llm_calls": [
+         {
+          "provider": "openai",
+          "model": "qwen3:4b-instruct-8k",
+          "prompt_tokens": 2276,
+          "completion_tokens": 20
+         }
+        ],
+        "tokens": {
+         "prompt": 2276,
+         "completion": 20
+        },
+        "sql": "SELECT COUNT(*) AS part_count FROM part"
+       }
+      }
+     ]
+    }
+   ],
+   "summary": {
+    "all": {
+     "turns": 25,
+     "correct_answer": 11,
+     "wrong_answer": 10,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 1,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 1,
+     "final_correct": 13,
+     "needs_review": 0
+    },
+    "database=tpch": {
+     "turns": 25,
+     "correct_answer": 11,
+     "wrong_answer": 10,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 1,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 1,
+     "final_correct": 13,
+     "needs_review": 0
+    },
+    "category=ambiguous": {
+     "turns": 3,
+     "correct_answer": 0,
+     "wrong_answer": 2,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 1,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 0,
+     "needs_review": 0
+    },
+    "category=follow_up": {
+     "turns": 8,
+     "correct_answer": 3,
+     "wrong_answer": 5,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 3,
+     "needs_review": 0
+    },
+    "category=ordinary": {
+     "turns": 11,
+     "correct_answer": 7,
+     "wrong_answer": 3,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 1,
+     "final_correct": 7,
+     "needs_review": 0
+    },
+    "category=paraphrase": {
+     "turns": 1,
+     "correct_answer": 1,
+     "wrong_answer": 0,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 1,
+     "needs_review": 0
+    },
+    "category=unsupported": {
+     "turns": 2,
+     "correct_answer": 0,
+     "wrong_answer": 0,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 2,
+     "needs_review": 0
+    },
+    "grammar_supported=False": {
+     "turns": 1,
+     "correct_answer": 0,
+     "wrong_answer": 1,
+     "correct_refusal": 0,
+     "unnecessary_refusal": 0,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 0,
+     "final_correct": 0,
+     "needs_review": 0
+    },
+    "grammar_supported=True": {
+     "turns": 24,
+     "correct_answer": 11,
+     "wrong_answer": 9,
+     "correct_refusal": 2,
+     "unnecessary_refusal": 1,
+     "useful_clarification": 0,
+     "unnecessary_clarification": 0,
+     "error": 1,
+     "final_correct": 13,
+     "needs_review": 0
+    },
+    "tokens": {
+     "prompt": 52473,
+     "completion": 1632
+    },
+    "seconds": {
+     "p50": 1.5,
+     "max": 2.53
+    }
+   }
+  }
+ ]
+}

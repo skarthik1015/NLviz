@@ -70,7 +70,18 @@ def _build_connection_app(tmp_path: Path) -> tuple[TestClient, ConnectionStore, 
     return TestClient(app), connection_store, secret_store
 
 
-def test_invalid_connection_id_header_returns_400():
+def _authenticate_probe_app(app: FastAPI, tmp_path: Path) -> ConnectionStore:
+    """Runtime resolution now checks ownership, so probe apps need a user and a store."""
+    store = ConnectionStore(
+        connections_path=tmp_path / "connections.jsonl",
+        versions_path=tmp_path / "schema_versions.jsonl",
+    )
+    app.state.connection_store = store
+    app.dependency_overrides[get_current_user] = lambda: _TEST_USER
+    return store
+
+
+def test_invalid_connection_id_header_returns_400(tmp_path: Path):
     app = FastAPI()
 
     @app.get("/probe")
@@ -79,6 +90,7 @@ def test_invalid_connection_id_header_returns_400():
         return {"ok": True}
 
     app.state.connection_service = MissingRuntimeService()
+    _authenticate_probe_app(app, tmp_path)
     client = TestClient(app)
 
     response = client.get("/probe", headers={"X-Connection-Id": "not-a-valid-id"})
@@ -87,7 +99,7 @@ def test_invalid_connection_id_header_returns_400():
     assert response.json()["detail"] == "INVALID_CONNECTION_ID"
 
 
-def test_unknown_connection_id_returns_404():
+def test_unknown_connection_id_returns_404(tmp_path: Path):
     app = FastAPI()
 
     @app.get("/probe")
@@ -96,6 +108,7 @@ def test_unknown_connection_id_returns_404():
         return {"ok": True}
 
     app.state.connection_service = MissingRuntimeService()
+    _authenticate_probe_app(app, tmp_path)
     client = TestClient(app)
 
     response = client.get("/probe", headers={"X-Connection-Id": "123e4567-e89b-42d3-a456-556642440000"})
@@ -104,7 +117,7 @@ def test_unknown_connection_id_returns_404():
     assert response.json()["detail"] == "CONNECTION_NOT_FOUND"
 
 
-def test_connection_without_published_schema_returns_409():
+def test_connection_without_published_schema_returns_409(tmp_path: Path):
     app = FastAPI()
 
     @app.get("/probe")
@@ -113,6 +126,7 @@ def test_connection_without_published_schema_returns_409():
         return {"ok": True}
 
     app.state.connection_service = NoPublishedSchemaService()
+    _authenticate_probe_app(app, tmp_path)
     client = TestClient(app)
 
     response = client.get("/probe", headers={"X-Connection-Id": "123e4567-e89b-42d3-a456-556642440000"})
@@ -121,39 +135,30 @@ def test_connection_without_published_schema_returns_409():
     assert response.json()["detail"] == "SCHEMA_NOT_PUBLISHED"
 
 
-def test_upload_creates_duckdb_with_sanitized_table_name(tmp_path: Path):
-    client, store, secrets = _build_connection_app(tmp_path)
+def test_upload_without_jammi_is_refused(tmp_path: Path):
+    """Phase 1g: the DuckDB upload engine is gone; uploads are served by Jammi only."""
+    client, store, _ = _build_connection_app(tmp_path)
     files = {"file": ("2026 sales-data.csv", b"id,value\n1,10\n2,20\n", "text/csv")}
-    data = {"display_name": "Uploaded CSV"}
 
-    response = client.post("/connections/upload", files=files, data=data)
+    response = client.post("/connections/upload", files=files, data={"display_name": "Uploaded CSV"})
 
-    assert response.status_code == 200
-    payload = response.json()
-    connection_id = payload["connection_id"]
-    assert payload["status"] == "active"
-
-    profile = store.get_connection(connection_id)
-    assert profile is not None
-    assert profile.connector_type == "duckdb"
-
-    params = secrets.get_by_connection_id(connection_id)
-    db_path = Path(params["db_path"])
-    assert db_path.exists()
-
-    with duckdb.connect(str(db_path), read_only=True) as conn:
-        tables = [row[0] for row in conn.execute("SHOW TABLES").fetchall()]
-        # 2026 sales-data -> t_2026_sales_data
-        assert "t_2026_sales_data" in tables
-        row_count = conn.execute('SELECT COUNT(*) FROM "t_2026_sales_data"').fetchone()[0]
-    assert row_count == 2
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("JAMMI_NOT_CONFIGURED")
+    assert store.list_connections() == []
 
 
 def test_upload_rejects_oversized_file(tmp_path: Path, monkeypatch):
     import app.api.routes.connections as connections_module
 
+    from app.dependencies import get_jammi_provisioner, get_jammi_upload_store
+    from app.services.jammi_sources import JammiSourceProvisioner
+    from app.services.jammi_uploads import LocalUploadStore
+    from test_jammi_connection_routes import FakeJammi
+
     monkeypatch.setattr(connections_module, "_MAX_UPLOAD_MB", 1)
     client, store, _ = _build_connection_app(tmp_path)
+    client.app.dependency_overrides[get_jammi_provisioner] = lambda: JammiSourceProvisioner(FakeJammi())
+    client.app.dependency_overrides[get_jammi_upload_store] = lambda: LocalUploadStore(tmp_path / "u", "/u")
     big_payload = b"x" * (2 * 1024 * 1024)
     files = {"file": ("big.csv", big_payload, "text/csv")}
     data = {"display_name": "Too Big"}
@@ -210,8 +215,8 @@ def test_job_status_requires_connection_owner(tmp_path: Path):
 
     response = client.get(f"/connections/{connection_id}/jobs/{job_id}")
 
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Access denied"
+    assert response.status_code == 404  # another user's connection looks missing, as on the question routes
+    assert response.json()["detail"] == "CONNECTION_NOT_FOUND"
 
 
 def test_test_connection_handles_boolean_failure_without_schema_introspection(tmp_path: Path, monkeypatch):
@@ -231,7 +236,7 @@ def test_test_connection_handles_boolean_failure_without_schema_introspection(tm
 
     response = client.post(
         "/connections/test",
-        json={"connector_type": "duckdb", "params": {"db_path": "missing.duckdb"}},
+        json={"connector_type": "postgres", "params": {"host": "h", "dbname": "d", "user": "u", "password": "p"}},
     )
 
     assert response.status_code == 200
@@ -279,3 +284,79 @@ def test_delete_connection_removes_uploaded_duckdb_and_schema_files(tmp_path: Pa
     assert response.status_code == 200
     assert not upload_path.exists()
     assert not schema_path.exists()
+
+
+def _owned_profile(connection_id: str, owner_id: str) -> ConnectionProfile:
+    return ConnectionProfile(
+        connection_id=connection_id,
+        display_name="Owned",
+        connector_type="postgres",
+        created_at=datetime.now(timezone.utc),
+        owner_id=owner_id,
+    )
+
+
+def test_query_routing_refuses_another_users_connection_with_404(tmp_path: Path):
+    """README gap 2: knowing a connection's UUID must not let another user query it."""
+    app = FastAPI()
+    resolved: list[str] = []
+
+    class RecordingService:
+        def get_runtime(self, connection_id: str):
+            resolved.append(connection_id)
+            raise AssertionError("runtime must not be resolved for a non-owner")
+
+    @app.get("/probe")
+    async def probe(service=Depends(get_query_service)):
+        del service
+        return {"ok": True}
+
+    app.state.connection_service = RecordingService()
+    store = _authenticate_probe_app(app, tmp_path)
+    connection_id = "123e4567-e89b-42d3-a456-556642440000"
+    store.create_connection(_owned_profile(connection_id, owner_id="someone-else"))
+
+    response = TestClient(app).get("/probe", headers={"X-Connection-Id": connection_id})
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "CONNECTION_NOT_FOUND"
+    assert resolved == []
+
+
+def test_query_routing_allows_the_owner(tmp_path: Path):
+    app = FastAPI()
+
+    class OkService:
+        def get_runtime(self, connection_id: str):
+            class Runtime:
+                query_service = "service"
+            return Runtime()
+
+    @app.get("/probe")
+    async def probe(service=Depends(get_query_service)):
+        return {"service": service}
+
+    app.state.connection_service = OkService()
+    store = _authenticate_probe_app(app, tmp_path)
+    connection_id = "123e4567-e89b-42d3-a456-556642440000"
+    store.create_connection(_owned_profile(connection_id, owner_id=_TEST_USER.user_id))
+
+    response = TestClient(app).get("/probe", headers={"X-Connection-Id": connection_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"service": "service"}
+
+
+def test_query_routing_requires_authentication(tmp_path: Path, monkeypatch):
+    app = FastAPI()
+
+    @app.get("/probe")
+    async def probe(service=Depends(get_query_service)):
+        return {"ok": True}
+
+    app.state.connection_service = MissingRuntimeService()
+    monkeypatch.delenv("DEV_USER_ID", raising=False)
+
+    response = TestClient(app).get("/probe", headers={"X-Connection-Id": "123e4567-e89b-42d3-a456-556642440000"})
+
+    assert response.status_code == 401

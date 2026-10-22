@@ -33,6 +33,8 @@ langchain-anthropic==1.3.4
 langchain-core==1.2.16
 langgraph==1.0.9
 langgraph-checkpoint==4.0.0
+# Conversation memory in the app's Postgres (Phase 3); psycopg 3 is what the saver needs.
+langgraph-checkpoint-postgres==3.0.5
 langgraph-prebuilt==1.0.8
 langgraph-sdk==0.3.9
 langsmith==0.7.7
@@ -82,8 +84,15 @@ xxhash==3.6.0
 yarl==1.22.0
 zstandard==0.25.0
 psycopg2-binary==2.9.10
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3
 cryptography==44.0.3
 python-multipart>=0.0.9
 boto3>=1.34.0
-pyathena>=3.0.0
 
+# Jammi client (pure Python; the engine runs as jammi-server). Pinned exactly: decision A3.
+jammi-ai==0.54.0
+PyMySQL==1.1.1
+# Excel uploads; defusedxml makes openpyxl parse workbook XML safely.
+openpyxl==3.1.5
+defusedxml==0.7.1

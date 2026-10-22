@@ -18,12 +18,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for least-privilege execution
-RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m appuser
+RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m appuser \
+    && mkdir -p /srv/demo /srv/uploads \
+    && chown appuser:appuser /srv/demo /srv/uploads
 
 WORKDIR /app
 
 COPY --from=builder /install /usr/local
 COPY . .
+RUN mkdir -p /app/data/.secrets /app/data/schemas
 
 RUN chown -R appuser:appuser /app
 

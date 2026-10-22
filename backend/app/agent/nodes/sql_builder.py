@@ -4,9 +4,13 @@ from collections.abc import Callable
 
 from app.agent.state import AgentState
 from app.semantic import SemanticRegistry, build_sql_from_intent
+from app.semantic.sql_builder import TableRefResolver
 
 
-def build_sql_builder_node(registry: SemanticRegistry) -> Callable[[AgentState], AgentState]:
+def build_sql_builder_node(
+    registry: SemanticRegistry,
+    table_ref: TableRefResolver | None = None,
+) -> Callable[[AgentState], AgentState]:
     def node(state: AgentState) -> AgentState:
         intent = state.get("intent")
         if intent is None:
@@ -14,13 +18,11 @@ def build_sql_builder_node(registry: SemanticRegistry) -> Callable[[AgentState],
 
         # Apply self-correction from validator
         correction_hint = state.get("correction_hint")
-        if correction_hint == "remove_date_filters":
-            intent = intent.model_copy(update={"start_date": None, "end_date": None})
-        elif correction_hint and correction_hint.startswith("reduce_limit:"):
+        if correction_hint and correction_hint.startswith("reduce_limit:"):
             new_limit = int(correction_hint.split(":")[1])
             intent = intent.model_copy(update={"limit": new_limit})
 
-        sql = build_sql_from_intent(intent, registry)
+        sql = build_sql_from_intent(intent, registry, table_ref=table_ref)
         return {
             "intent": intent,  # persist modified intent if correction was applied
             "sql": sql,
